@@ -1,39 +1,33 @@
 /* --- Global Settings & Material Design Variables --- */
 :root {
     /* Icon-Matched Color Palette */
-    /* Primary color from the icon's dark outline */
     --md-sys-color-primary: #004D40; /* Dark Teal */
     --md-sys-color-on-primary: #FFFFFF;
     --md-sys-color-primary-rgb: 0, 77, 64; /* For RGBA hovers */
 
-    /* Secondary color - a slightly lighter, complementary teal */
     --md-sys-color-secondary: #00796B; /* Medium Teal */
     --md-sys-color-on-secondary: #FFFFFF;
 
-    /* Tertiary colors for accents like the counter */
-    /* Using the light aqua from the icon's fill for the counter background */
     --md-sys-color-tertiary: #A7FFEB; /* Light Aqua/Cyan */
-    /* Using the primary dark teal for text on the light counter for contrast */
     --md-sys-color-on-tertiary: #004D40; /* Dark Teal */
 
-    /* Background and Surface colors for overall theming */
-    --md-sys-color-background: #F5F7FA; /* Very Light Cool Grey (almost off-white) */
-    --md-sys-color-surface: #FFFFFF; /* White (Top Bar, Cards) */
-    --md-sys-color-on-surface: #1A202C; /* Dark Desaturated Blue (Main Text) */
+    --md-sys-color-background: #F5F7FA;
+    --md-sys-color-surface: #FFFFFF;
+    --md-sys-color-on-surface: #1A202C;
 
-    /* Container colors */
-    /* Nav Bar BG - using a very light cyan, similar to icon's fill */
     --md-sys-color-surface-container: #E0F7FA;
-    /* Active Nav BG - using the primary dark teal */
     --md-sys-color-secondary-container: var(--md-sys-color-primary);
-    /* Active Nav Text/Icon - white for contrast on dark teal */
     --md-sys-color-on-secondary-container: var(--md-sys-color-on-primary);
-    /* Inactive Icons, Help Icon - using the secondary medium teal */
     --md-sys-color-on-surface-variant: var(--md-sys-color-secondary);
 
-    --md-sys-color-outline: #B2DFDB; /* Light Muted Teal/Grey for outlines */
+    --md-sys-color-outline: #B2DFDB;
 
-    /* Dimensions and Spacing (remain unchanged from previous version) */
+    --overlay-color: rgba(var(--md-sys-color-primary-rgb), 0.65);
+    --target-area-size: 60vw;
+    --target-area-max-size: 250px;
+
+
+    /* Dimensions and Spacing */
     --top-app-bar-height: 60px;
     --app-logo-size: 30px;
     --app-logo-margin-right: 10px;
@@ -53,213 +47,182 @@
     --counter-font-size: 13px;
     --counter-border-width: 2px;
 
-    /* Font (remains unchanged) */
+    /* Font */
     --md-font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-    --md-font-title-large-size: 16px;
+    --md-font-title-large-size: 20px;
     --md-font-title-weight: 700;
 }
 
-/* Basic Reset and Body Styling */
-body, html {
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    height: 100%;
-    font-family: var(--md-font-family);
-    background-color: var(--md-sys-color-background);
-    color: var(--md-sys-color-on-surface); /* Main text color */
+/* --- App Sync / Scanner Specific Styles --- */
+#app-sync-container {
+    position: absolute;
+    top: var(--top-app-bar-height);
+    left: 0; right: 0; bottom: 0;
+    background-color: #000;
     overflow: hidden;
-    -webkit-tap-highlight-color: transparent;
-    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
+    justify-content: center; align-items: center;
+    z-index: 100; 
 }
 
-*, *:before, *:after {
-    box-sizing: inherit;
+#camera-feed {
+    position: absolute; top: 50%; left: 50%;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+    z-index: 101;
 }
+
+#camera-overlay {
+    position: absolute; top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 102;
+    display: flex; justify-content: center; align-items: center;
+    background: radial-gradient(
+        circle at center,
+        transparent 0%,
+        transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), /* Use min for cutout */
+        var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px)
+    );
+}
+
+#scan-target-area {
+    width: min(var(--target-area-size), var(--target-area-max-size)); /* Use min for actual size */
+    height: min(var(--target-area-size), var(--target-area-max-size));
+    position: relative;
+    border: 2px dashed rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+.corner {
+    position: absolute; width: 20px; height: 20px; /* Adjusted size */
+    border-color: rgba(255, 255, 255, 0.9); border-style: solid; border-width: 0;
+}
+.corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;} /* Rounded corners for markers */
+.corner.top-right { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px;}
+.corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
+.corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
+
+
+.app-sync-button {
+    position: absolute; z-index: 103;
+    background-color: rgba(var(--md-sys-color-primary-rgb), 0.8);
+    color: var(--md-sys-color-on-primary); border: none; border-radius: 28px;
+    padding: 10px 16px; display: flex; align-items: center; gap: 8px;
+    cursor: pointer; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    transition: background-color 0.2s ease, transform 0.2s ease; font-size: 14px;
+}
+.app-sync-button:hover { background-color: var(--md-sys-color-primary); transform: scale(1.05); }
+.app-sync-button .material-symbols-outlined { font-size: 22px; }
+.app-sync-button.top-left { top: 20px; left: 20px; }
+.app-sync-button.bottom-center {
+    bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
+    left: 50%; transform: translateX(-50%);
+}
+
+.camera-error {
+    color: var(--md-sys-color-on-surface); padding: 30px; text-align: center;
+    background-color: var(--md-sys-color-surface); border-radius: 8px; margin: 20px;
+}
+.camera-error h2 { color: #B00020; }
+.camera-error button {
+    padding: 10px 20px; background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary); border: none; border-radius: 4px;
+    cursor: pointer; margin-top: 15px; font-size: 16px;
+}
+
+/* --- Basic Reset and Body Styling --- */
+body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    font-family: var(--md-font-family);
+    background-color: var(--md-sys-color-background);
+    color: var(--md-sys-color-on-surface);
+    overflow: hidden; -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box; display: flex; flex-direction: column;
+}
+*, *:before, *:after { box-sizing: inherit; }
 
 /* --- Top Application Bar Styling --- */
 #top-app-bar {
-    width: 100%;
-    height: var(--top-app-bar-height);
+    width: 100%; height: var(--top-app-bar-height);
     background-color: var(--md-sys-color-surface);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 16px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
-    z-index: 1100;
-    flex-shrink: 0;
-    position: fixed;
-    top: 0;
-    left: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+    z-index: 1100; flex-shrink: 0; position: fixed; top: 0; left: 0;
 }
+.app-logo-title-group { display: flex; align-items: center; gap: var(--app-logo-margin-right); }
+.app-logo { width: var(--app-logo-size); height: var(--app-logo-size); object-fit: contain; border-radius: 4px; vertical-align: middle; }
+.app-title { font-size: var(--md-font-title-large-size); font-weight: var(--md-font-title-weight); color: var(--md-sys-color-on-surface); line-height: 1.2; letter-spacing: 0.5px; }
+.header-button { background: none; border: none; padding: 10px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--md-sys-color-on-surface-variant); transition: background-color 0.2s ease-in-out; }
+.header-button:hover { background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); }
+.header-button .material-symbols-outlined { font-size: 24px; }
 
-.app-logo-title-group {
-    display: flex;
-    align-items: center;
-    gap: var(--app-logo-margin-right);
-}
-
-.app-logo {
-    width: var(--app-logo-size);
-    height: var(--app-logo-size);
-    object-fit: contain;
-    border-radius: 4px;
-    vertical-align: middle;
-}
-
-.app-title {
-    font-size: var(--md-font-title-large-size);
-    font-weight: var(--md-font-title-weight);
-    color: var(--md-sys-color-on-surface);
-    line-height: 1.2;
-    letter-spacing: 0.5px;
-}
-
-.header-button {
-    background: none;
-    border: none;
-    padding: 10px;
-    border-radius: 50%;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--md-sys-color-on-surface-variant); /* Uses secondary teal */
-    transition: background-color 0.2s ease-in-out;
-}
-
-.header-button:hover {
-    background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); /* Hover with primary color tint */
-}
-
-.header-button .material-symbols-outlined {
-    font-size: 24px;
-}
-
-
-/* --- Main Pane Styling --- */
+/* --- Main Pane Styling (UPDATED FOR SCROLLING) --- */
 #main-pane {
-    width: 100%;
-    flex-grow: 1;
-    padding: 24px;
-    padding-top: calc(var(--top-app-bar-height) + 24px);
-    padding-bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 24px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    text-align: center;
+    width: 100%; 
+    flex-grow: 1; 
+    padding-top: var(--top-app-bar-height);
+    padding-left: 16px; 
+    padding-right: 16px;
+    padding-bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px); 
+    overflow-y: auto; /* ALLOWS SCROLLING FOR CONTENT LIKE THE TABLE */
+    position: relative; 
+    text-align: center; 
     background-color: var(--md-sys-color-background);
+    box-sizing: border-box;
 }
 
 /* --- Navigation Bar Styling --- */
 #navigation-bar {
-    position: fixed;
-    bottom: var(--nav-bar-bottom-margin);
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: var(--md-sys-color-surface-container); /* Light Cyan BG */
-    border-radius: 28px;
-    padding: var(--nav-bar-vertical-padding) var(--nav-bar-horizontal-padding);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
+    position: fixed; bottom: var(--nav-bar-bottom-margin); left: 50%;
+    transform: translateX(-50%); background-color: var(--md-sys-color-surface-container);
+    border-radius: 28px; padding: var(--nav-bar-vertical-padding) var(--nav-bar-horizontal-padding);
+    display: flex; justify-content: center; align-items: center; gap: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0,0,0,0.08);
-    z-index: 1000;
-    transition: padding 0.3s ease;
-    height: var(--nav-bar-height);
-    flex-shrink: 0;
+    z-index: 1200; transition: padding 0.3s ease; height: var(--nav-bar-height); flex-shrink: 0;
 }
 
 /* --- Navigation Button Styling --- */
 .nav-button {
-    background-color: transparent;
-    border: none;
-    border-radius: 20px;
+    background-color: transparent; border: none; border-radius: 20px;
     height: calc(var(--nav-bar-height) - (var(--nav-bar-vertical-padding) * 2));
-    min-width: var(--nav-button-min-width);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    cursor: pointer;
-    padding: 0 var(--nav-button-inactive-padding-horizontal);
+    min-width: var(--nav-button-min-width); display: flex; justify-content: center;
+    align-items: center; cursor: pointer; padding: 0 var(--nav-button-inactive-padding-horizontal);
     transition: background-color 0.25s ease-in-out, padding 0.25s ease-in-out, min-width 0.25s ease-in-out, color 0.25s ease-in-out;
-    position: relative;
-    overflow: hidden;
-    color: var(--md-sys-color-on-surface-variant); /* Inactive icon color (Medium Teal) */
+    position: relative; overflow: hidden; color: var(--md-sys-color-on-surface-variant);
 }
-
 .nav-button .material-symbols-outlined {
-    font-size: var(--nav-button-icon-size);
-    font-variation-settings: 'FILL' 0;
-    transition: font-variation-settings 0.25s ease-in-out, color 0.25s ease-in-out;
-    flex-shrink: 0;
+    font-size: var(--nav-button-icon-size); font-variation-settings: 'FILL' 0;
+    transition: font-variation-settings 0.25s ease-in-out, color 0.25s ease-in-out; flex-shrink: 0;
 }
-
 .nav-button-label {
-    font-size: var(--nav-button-label-font-size);
-    font-weight: 500;
-    margin-left: 8px;
-    white-space: nowrap;
-    opacity: 0;
-    max-width: 0;
-    overflow: hidden;
+    font-size: var(--nav-button-label-font-size); font-weight: 500; 
+    white-space: nowrap; opacity: 0; max-width: 0; overflow: hidden;
     transition: opacity 0.25s ease-in-out, max-width 0.25s ease-in-out 0.05s, margin-left 0.25s ease-in-out;
-    color: var(--md-sys-color-on-secondary-container); /* Active label color (White) */
+    color: var(--md-sys-color-on-secondary-container); margin-left: 0;
 }
-
-.nav-button:hover:not(.active) {
-    background-color: rgba(var(--md-sys-color-primary-rgb), 0.04); /* Hover with primary color tint */
-    color: var(--md-sys-color-primary); /* Icon color changes to primary on hover */
-}
-
-.nav-button.active {
-    background-color: var(--md-sys-color-secondary-container); /* Dark Teal BG */
-    color: var(--md-sys-color-on-secondary-container); /* Active icon color (White) */
-    padding: 0 var(--nav-button-active-padding-horizontal);
-    min-width: auto;
-}
-
-.nav-button.active .material-symbols-outlined {
-     font-variation-settings: 'FILL' 1;
-}
-
-.nav-button.active .nav-button-label {
-    opacity: 1;
-    max-width: 100px;
-    margin-left: 8px;
-}
-
+.nav-button:hover:not(.active) { background-color: rgba(var(--md-sys-color-primary-rgb), 0.04); color: var(--md-sys-color-primary); }
+.nav-button.active { background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); padding: 0 var(--nav-button-active-padding-horizontal); min-width: auto; }
+.nav-button.active .material-symbols-outlined { font-variation-settings: 'FILL' 1; }
+.nav-button.active .nav-button-label { opacity: 1; max-width: 100px; margin-left: 8px; }
 
 /* --- Entry Storage Counter Styling --- */
 #storage-counter {
-    position: fixed;
-    width: var(--counter-size);
-    height: var(--counter-size);
-    background-color: var(--md-sys-color-tertiary); /* Light Aqua/Cyan BG */
-    color: var(--md-sys-color-on-tertiary); /* Dark Teal Text */
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: var(--counter-font-size);
-    font-weight: 600;
+    position: fixed; width: var(--counter-size); height: var(--counter-size);
+    background-color: var(--md-sys-color-tertiary); color: var(--md-sys-color-on-tertiary);
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-size: var(--counter-font-size); font-weight: 600;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0,0,0,0.1);
-    z-index: 1001;
-    border: var(--counter-border-width) solid var(--md-sys-color-surface); /* Border matches Top Bar BG (White) */
+    z-index: 1201; border: var(--counter-border-width) solid var(--md-sys-color-surface);
     left: calc(50% + 108px - (var(--counter-size) * 0.65));
     bottom: calc(var(--nav-bar-bottom-margin) + var(--nav-bar-height) - (var(--counter-size) * 0.65));
     transition: transform 0.3s ease, left 0.25s ease-in-out;
 }
-
-#storage-counter:hover {
-    transform: scale(1.1);
-}
+#storage-counter:hover { transform: scale(1.1); }
 
 /* Accessibility: Focus states for keyboard navigation */
-.nav-button:focus-visible, .header-button:focus-visible {
+.nav-button:focus-visible, .header-button:focus-visible, .app-sync-button:focus-visible {
     outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.12);
