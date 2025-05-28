@@ -24,6 +24,11 @@
 
     --md-sys-color-outline: #B2DFDB;
     --md-sys-color-error: #B00020; /* Standard error color */
+    --md-sys-color-error-container: #FDECEA;
+    --md-sys-color-on-error-container: #B00020;
+    --md-sys-color-success: #2E7D32; /* Success color */
+    --md-sys-color-success-container: #E8F5E9;
+    --md-sys-color-on-success-container: #2E7D32;
 
 
     --overlay-color: rgba(var(--md-sys-color-primary-rgb), 0.65);
@@ -164,16 +169,14 @@ body, html {
 .add-entry-view-container {
     position: relative; 
     width: 100%;
-    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); /* Ensure it can fill available space */
+    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); 
     display: flex;
     flex-direction: column;
 }
 #dynamic-entry-form-area {
-    flex-grow: 1; /* Allows this area to take up space if needed */
-    /* MODIFIED: Added top padding to clear the top-left FAB */
-    padding-top: calc(var(--fab-margin) + var(--fab-size) + 16px); /* fab-margin + fab-height + extra space */
-    padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important; /* Ensure space for bottom FABs */
-    /* Inline styles from JS for text-align, margin, max-width, width will still apply */
+    flex-grow: 1; 
+    padding-top: calc(var(--fab-margin) + var(--fab-size) + 16px); 
+    padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important; 
 }
 
 
@@ -215,14 +218,14 @@ body, html {
 .fab-entry-mode:active { 
     width: auto; 
     border-radius: 28px; 
-    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2); /* Center icon when circular */
+    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2); 
     padding-right: 16px; 
 }
 .fab-entry-mode.expanded .material-symbols-outlined,
 .fab-entry-mode:hover .material-symbols-outlined,
 .fab-entry-mode:focus .material-symbols-outlined,
 .fab-entry-mode:active .material-symbols-outlined {
-    margin-right: 0; /* Reset margin if icon was centered */
+    margin-right: 0; 
 }
 
 .fab-entry-mode.expanded .fab-text,
@@ -233,9 +236,8 @@ body, html {
     max-width: 150px; 
     margin-left: 8px;
 }
-/* Specific centering for icon when not expanded */
 .fab-entry-mode:not(.expanded):not(:hover):not(:focus):not(:active) .material-symbols-outlined {
-    margin-left: auto; margin-right: auto; /* Center icon */
+    margin-left: auto; margin-right: auto; 
 }
 
 
@@ -256,10 +258,10 @@ body, html {
 /* --- Entry Form Table Styles --- */
 .entry-form-table {
     width: 100%;
-    border-collapse: separate; /* Use separate for border-spacing */
-    border-spacing: 0 8px; /* Spacing between rows */
+    border-collapse: separate; 
+    border-spacing: 0 8px; 
     margin-top: 10px;
-    table-layout: fixed; /* Helps with consistent column widths */
+    table-layout: fixed; 
 }
 .entry-form-table th, .entry-form-table td {
     text-align: left;
@@ -274,15 +276,15 @@ body, html {
     letter-spacing: 0.5px;
     border-bottom: 2px solid var(--md-sys-color-outline);
 }
-.entry-form-table td:first-child { /* Field Name column */
+.entry-form-table td:first-child { 
     font-weight: 500;
     color: var(--md-sys-color-on-surface-variant);
     padding-right: 15px;
-    width: 40%; /* Adjust as needed */
+    width: 40%; 
     word-wrap: break-word;
 }
-.entry-form-table td:last-child { /* Value column */
-    width: 60%; /* Adjust as needed */
+.entry-form-table td:last-child { 
+    width: 60%; 
 }
 .entry-field-input {
     width: 100%;
@@ -305,6 +307,30 @@ body, html {
     text-align: left;
     margin-top: 10px;
     color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Input Error Styling */
+.entry-field-input.input-error {
+    border-color: var(--md-sys-color-error) !important;
+    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-error-rgb, 176, 0, 32), 0.2) !important; /* Fallback if --md-sys-color-error-rgb not set */
+}
+/* Validation Message Styling */
+.validation-message {
+    padding: 10px 15px;
+    margin-bottom: 15px; /* Space below the message */
+    border-radius: 6px;
+    font-size: 0.95em;
+    text-align: center;
+}
+.validation-message.error {
+    background-color: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+    border: 1px solid var(--md-sys-color-error);
+}
+.validation-message.success {
+    background-color: var(--md-sys-color-success-container);
+    color: var(--md-sys-color-on-success-container);
+    border: 1px solid var(--md-sys-color-success);
 }
 
 
@@ -366,21 +392,40 @@ body, html {
     max-width: 300px; margin: 20px auto;
 }
 
+/* General Button Styling (for sync prompt, etc.) */
+.quest-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px; /* Consistent rounded buttons */
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    font-size: 1rem;
+}
+.quest-button.primary {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+}
+.quest-button.primary:hover {
+    background-color: var(--md-sys-color-secondary); /* Darken on hover */
+}
+
+
 /* Accessibility: Focus states for keyboard navigation */
 .nav-button:focus-visible, .header-button:focus-visible, 
 .app-sync-button:focus-visible, .fab-entry-mode:focus-visible,
 .qr-generation-container button:focus-visible, 
 .form-setup-result-container button:focus-visible,
 .camera-error button:focus-visible,
-.entry-field-input:focus-visible { 
+.entry-field-input:focus-visible,
+.quest-button:focus-visible { 
     outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
 }
-.entry-field-input:focus-visible { /* Specific focus for inputs if different from buttons */
+.entry-field-input:focus-visible { 
     box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
 }
 
-/* Ensure buttons don't get default browser outline if we provide custom */
 button:focus {
     outline: none;
 }
