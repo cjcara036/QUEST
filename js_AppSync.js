@@ -42,9 +42,9 @@ function showFormSetupScan() {
                 </div>
             </div>
 
-            <button id="btn-generate-qr-mode" class="app-sync-button top-left">
+            <button id="btn-export-data-mode" class="app-sync-button top-left">
                 <span class="material-symbols-outlined">qr_code_2_add</span>
-                <span class="button-label">Generate QR</span>
+                <span class="button-label">Export Data</span>
             </button>
 
             <button id="btn-switch-camera" class="app-sync-button bottom-center">
@@ -56,7 +56,7 @@ function showFormSetupScan() {
 
     window.injectHTMLToMainPane(formSetupHTML);
 
-    document.getElementById('btn-generate-qr-mode').addEventListener('click', showQREntryGen);
+    document.getElementById('btn-export-data-mode').addEventListener('click', showQREntryGen);
     document.getElementById('btn-switch-camera').addEventListener('click', switchCamera);
 
     startCamera();
@@ -233,17 +233,19 @@ async function parseFormSetup(data) {
     console.log("parseFormSetup: Scanned QR Data:", data.substring(0,100)+"...");
     await window.stopCamera(); 
 
-    // Alert removed as per request
-    // alert(`Form Setup QR Code Scanned. Previous entries will be cleared and new form fields will be parsed.`);
+    // Alert removed.
+    // console.log("Form Setup QR Code Scanned. Previous entries will be cleared and new form fields will be parsed."); // Log instead of alert
 
     if (typeof window.deleteAllEntryData === 'function') {
         window.deleteAllEntryData(); 
         console.log("parseFormSetup: deleteAllEntryData() called.");
-        // Since deleteAllEntryData in the provided main_EntryStorage.js doesn't reset LAST_ENTRY_LENGTH or update counter:
-        LAST_ENTRY_LENGTH = 50; // Reset to default
-        console.log("parseFormSetup: LAST_ENTRY_LENGTH reset to 50.");
+        // Explicitly reset LAST_ENTRY_LENGTH and update counter as deleteAllEntryData only deletes cookie
+        if (typeof LAST_ENTRY_LENGTH !== 'undefined') {
+             LAST_ENTRY_LENGTH = 50; 
+             console.log("parseFormSetup: LAST_ENTRY_LENGTH reset to 50.");
+        }
         if(typeof window.updateStorageCounter === 'function') {
-            window.updateStorageCounter(); // Update UI counter
+            window.updateStorageCounter(); 
         }
     } else {
         console.error("parseFormSetup: deleteAllEntryData() function is not defined.");
@@ -257,14 +259,14 @@ async function parseFormSetup(data) {
         const fields = typeof getDataFields === 'function' ? getDataFields() : [];
         
         htmlOutput = `
-            <div style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface);">
-                <h2 style="color: var(--md-sys-color-primary);">Form Fields Successfully Parsed!</h2>
-                <p>The following fields have been set up for data entry:</p>
+            <div class="form-setup-result-container" style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface);">
+                <h2 style="color: var(--md-sys-color-primary); margin-bottom: 10px;">Form Fields Parsed</h2>
+                <p style="margin-bottom: 20px;">The following fields are ready for data entry:</p>
         `;
 
         if (fields.length > 0) {
             htmlOutput += `
-                <div style="max-width: 600px; margin: 20px auto; background-color: var(--md-sys-color-surface); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden;">
+                <div class="data-table-container" style="max-width: 600px; margin: 0 auto 20px auto; background-color: var(--md-sys-color-surface); border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; text-align: left;">
                         <thead style="background-color: var(--md-sys-color-surface-container);">
                             <tr>
@@ -277,7 +279,7 @@ async function parseFormSetup(data) {
             fields.forEach((field, index) => {
                 htmlOutput += `
                     <tr style="background-color: ${index % 2 === 0 ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-background)'};">
-                        <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline);">${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); white-space: nowrap;">${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
                         <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); font-style: ${field.fieldValue === "" ? 'italic' : 'normal'}; color: ${field.fieldValue === "" ? '#757575' : 'inherit'};">${field.fieldValue === "" ? '(empty)' : field.fieldValue.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
                     </tr>
                 `;
@@ -311,18 +313,60 @@ async function parseFormSetup(data) {
 
 /**
  * Switches to "QR Entry Generation" mode.
+ * Displays a QR code of the current questEntryContent cookie.
  */
 async function showQREntryGen() {
     await window.stopCamera(); 
     window.clearMainPane(); 
-    window.injectHTMLToMainPane(`
-        <div style="padding: 20px; text-align: center;">
-            <h2>Generate Export QR Code</h2>
-            <p>This section will allow you to generate a QR code containing all your collected data.</p>
-            <div id="export-qr-code-placeholder" style="width: 250px; height: 250px; background: #eee; margin: 20px auto; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-                (QR Code Will Appear Here)
-            </div>
-            <button onclick="showFormSetupScan()" style="padding: 10px 15px; margin-top: 15px; cursor:pointer;">Back to Scan Setup QR</button>
+
+    const entryData = typeof getAllEntryData === 'function' ? getAllEntryData() : "";
+    let qrContentHTML;
+
+    if (entryData) {
+        qrContentHTML = `
+            <p style="margin-bottom: 15px; font-size: 16px;">Scan this QR code with your target application:</p>
+            <div id="qr-code-display-area" style="width: 256px; height: 256px; margin: 0 auto 20px auto; padding: 10px; background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                </div>
+        `;
+    } else {
+        qrContentHTML = `
+            <p id="no-data-for-qr-message" style="margin-bottom: 20px; font-size: 16px; color: var(--md-sys-color-secondary);">
+                No data available to generate QR code. Add some entries first.
+            </p>
+        `;
+    }
+
+    const QREntryGenHTML = `
+        <div class="qr-generation-container" style="padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%;">
+            <button id="btn-scan-setup-mode" class="app-sync-button top-left" style="position: relative; margin-bottom: 25px; align-self: flex-start;">
+                <span class="material-symbols-outlined">qr_code_scanner</span>
+                <span class="button-label">Form Setup</span>
+            </button>
+            <h2 style="margin-bottom: 10px; color: var(--md-sys-color-primary); width: 100%; text-align: center;">Export Data Entries</h2>
+            ${qrContentHTML}
         </div>
-    `);
+    `;
+    window.injectHTMLToMainPane(QREntryGenHTML);
+
+    document.getElementById('btn-scan-setup-mode').addEventListener('click', showFormSetupScan);
+
+    if (entryData) {
+        const qrCodeElement = document.getElementById('qr-code-display-area');
+        if (qrCodeElement) {
+            try {
+                new QRCode(qrCodeElement, {
+                    text: entryData,
+                    width: 256,
+                    height: 256,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H 
+                });
+                console.log("QR Code for export generated.");
+            } catch (e) {
+                console.error("Error generating QR code for export:", e);
+                qrCodeElement.innerHTML = "<p style='color:red;'>Error generating QR code.</p>";
+            }
+        }
+    }
 }
