@@ -7,6 +7,8 @@
 
     --md-sys-color-secondary: #00796B; /* Medium Teal */
     --md-sys-color-on-secondary: #FFFFFF;
+    --md-sys-color-secondary-rgb: 0, 121, 107;
+
 
     --md-sys-color-tertiary: #A7FFEB; /* Light Aqua/Cyan */
     --md-sys-color-on-tertiary: #004D40; /* Dark Teal */
@@ -21,6 +23,8 @@
     --md-sys-color-on-surface-variant: var(--md-sys-color-secondary);
 
     --md-sys-color-outline: #B2DFDB;
+    --md-sys-color-error: #B00020; /* Standard error color */
+
 
     --overlay-color: rgba(var(--md-sys-color-primary-rgb), 0.65);
     --target-area-size: 60vw;
@@ -33,7 +37,7 @@
     --app-logo-margin-right: 10px;
 
     --nav-bar-height: 56px;
-    --nav-bar-bottom-margin: 24px;
+    --nav-bar-bottom-margin: 24px; /* Space below the nav bar */
     --nav-bar-horizontal-padding: 12px;
     --nav-bar-vertical-padding: 8px;
     
@@ -47,6 +51,12 @@
     --counter-font-size: 13px;
     --counter-border-width: 2px;
 
+    --fab-size: 56px; /* Standard FAB size */
+    --fab-icon-size: 24px;
+    --fab-font-size: 14px;
+    --fab-margin: 16px; /* Margin from screen edges */
+
+
     /* Font */
     --md-font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
     --md-font-title-large-size: 20px;
@@ -54,47 +64,28 @@
 }
 
 /* --- App Sync / Scanner Specific Styles --- */
-#app-sync-container { /* This is for the camera view */
-    position: absolute;
-    top: var(--top-app-bar-height);
-    left: 0; right: 0; bottom: 0;
-    background-color: #000;
-    overflow: hidden;
-    display: flex;
-    justify-content: center; align-items: center;
-    z-index: 100; 
+#app-sync-container { 
+    position: absolute; top: var(--top-app-bar-height); left: 0; right: 0; bottom: 0;
+    background-color: #000; overflow: hidden; display: flex;
+    justify-content: center; align-items: center; z-index: 100; 
 }
-
 #camera-feed {
-    position: absolute; top: 50%; left: 50%;
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transform: translate(-50%, -50%);
-    z-index: 101;
+    position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
+    object-fit: cover; transform: translate(-50%, -50%); z-index: 101;
 }
-
 #camera-overlay {
-    position: absolute; top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 102;
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 102;
     display: flex; justify-content: center; align-items: center;
-    background: radial-gradient(
-        circle at center,
-        transparent 0%,
+    background: radial-gradient( circle at center, transparent 0%,
         transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), 
-        var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px)
-    );
+        var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px) );
 }
-
 #scan-target-area {
     width: min(var(--target-area-size), var(--target-area-max-size)); 
     height: min(var(--target-area-size), var(--target-area-max-size));
-    position: relative;
-    border: 2px dashed rgba(255, 255, 255, 0.7);
-    border-radius: 16px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+    position: relative; border: 2px dashed rgba(255, 255, 255, 0.7);
+    border-radius: 16px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
-
 .corner {
     position: absolute; width: 20px; height: 20px; 
     border-color: rgba(255, 255, 255, 0.9); border-style: solid; border-width: 0;
@@ -104,8 +95,7 @@
 .corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
 .corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
 
-
-.app-sync-button { /* General style for buttons within AppSync views */
+.app-sync-button { 
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.8);
     color: var(--md-sys-color-on-primary); border: none; border-radius: 28px;
     padding: 10px 16px; display: flex; align-items: center; gap: 8px;
@@ -116,19 +106,18 @@
 .app-sync-button:hover { background-color: var(--md-sys-color-primary); transform: scale(1.05); }
 .app-sync-button .material-symbols-outlined { font-size: 22px; }
 
-/* Specific positioning for buttons in camera scanner view */
+/* Positioning for buttons in camera scanner view */
 #app-sync-container .app-sync-button.top-left { position: absolute; top: 20px; left: 20px; z-index: 103;}
 #app-sync-container .app-sync-button.bottom-center {
     position: absolute; z-index: 103;
     bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
     left: 50%; transform: translateX(-50%);
 }
-
 .camera-error {
     color: var(--md-sys-color-on-surface); padding: 30px; text-align: center;
     background-color: var(--md-sys-color-surface); border-radius: 8px; margin: 20px;
 }
-.camera-error h2 { color: #B00020; }
+.camera-error h2 { color: var(--md-sys-color-error); }
 .camera-error button {
     padding: 10px 20px; background-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary); border: none; border-radius: 4px;
@@ -161,37 +150,92 @@ body, html {
 .header-button:hover { background-color: rgba(var(--md-sys-color-primary-rgb), 0.08); }
 .header-button .material-symbols-outlined { font-size: 24px; }
 
-/* --- Main Pane Styling (UPDATED FOR SCROLLING) --- */
+/* --- Main Pane Styling --- */
 #main-pane {
-    width: 100%; 
-    flex-grow: 1; 
-    padding-top: var(--top-app-bar-height); /* Space for fixed top bar */
-    padding-left: 16px; 
-    padding-right: 16px;
-    /* Adjust bottom padding to ensure content doesn't hide under nav bar */
+    width: 100%; flex-grow: 1; 
+    padding-top: var(--top-app-bar-height);
+    padding-left: 16px; padding-right: 16px;
     padding-bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px); 
-    overflow-y: auto; /* ALLOWS SCROLLING FOR CONTENT LIKE THE TABLE */
-    position: relative; /* For #app-sync-container to be absolute within it */
-    text-align: center; 
-    background-color: var(--md-sys-color-background);
-    box-sizing: border-box; /* Ensures padding is included in width/height calculations */
+    overflow-y: auto; position: relative; 
+    text-align: center; background-color: var(--md-sys-color-background);
+    box-sizing: border-box;
 }
 
-/* Container for QR Generation View content */
-.qr-generation-container {
-    padding: 20px;
-    text-align: center;
+/* --- Add Entry View Specific Container --- */
+.add-entry-view-container {
+    position: relative; /* Needed for absolute positioning of FABs if they were relative to this */
+    width: 100%;
+    height: 100%; /* Or min-height if content dictates size */
     display: flex;
     flex-direction: column;
-    align-items: center; /* Center content horizontally */
-    /* justify-content: flex-start; /* Align content to the top */
-    /* height: 100%; /* Take full height of main-pane if needed, but scrolling is on main-pane */
+    /* justify-content: center; /* Centers form area if it's smaller than view */
 }
-/* Style for the "Form Setup" button in QR generation view to be top-left */
-.qr-generation-container .app-sync-button.top-left {
-    position: static; /* Override absolute positioning from general .app-sync-button */
-    align-self: flex-start; /* Align to the left of the flex container */
-    margin-bottom: 25px; /* Space below it */
+
+
+/* --- Floating Action Button (FAB) Styles for Add Entry Mode --- */
+.fab-entry-mode {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    border: none;
+    border-radius: 50%; /* Circular by default */
+    width: var(--fab-size);
+    height: var(--fab-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: width 0.25s ease-in-out, border-radius 0.25s ease-in-out, background-color 0.2s ease;
+    position: fixed; /* Fixed position relative to viewport */
+    z-index: 1050; /* Above main pane content, below nav bar if overlapping */
+    overflow: hidden; /* Important for text hiding/showing */
+}
+.fab-entry-mode .material-symbols-outlined {
+    font-size: var(--fab-icon-size);
+    transition: margin-right 0.25s ease-in-out;
+}
+.fab-entry-mode .fab-text {
+    font-size: var(--fab-font-size);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    transition: opacity 0.2s ease-in-out 0.05s, max-width 0.2s ease-in-out 0.05s, margin-left 0.2s ease-in-out;
+}
+
+/* Expanded state for FABs (on hover, focus, active/touch) */
+.fab-entry-mode.expanded,
+.fab-entry-mode:hover,
+.fab-entry-mode:focus,
+.fab-entry-mode:active { /* :active for touch hold feel */
+    width: auto; /* Expand to fit content */
+    border-radius: 28px; /* Pill shape */
+    padding-left: 16px; 
+    padding-right: 20px; 
+    background-color: var(--md-sys-color-primary); /* Darker on interaction */
+}
+.fab-entry-mode.expanded .fab-text,
+.fab-entry-mode:hover .fab-text,
+.fab-entry-mode:focus .fab-text,
+.fab-entry-mode:active .fab-text {
+    opacity: 1;
+    max-width: 150px; /* Adjust as needed */
+    margin-left: 8px;
+}
+
+/* Positioning for FABs */
+.fab-entry-mode.fab-top-left {
+    top: calc(var(--top-app-bar-height) + var(--fab-margin));
+    left: var(--fab-margin);
+}
+.fab-entry-mode.fab-bottom-left {
+    bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + var(--fab-margin));
+    left: var(--fab-margin);
+}
+.fab-entry-mode.fab-bottom-right {
+    bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + var(--fab-margin));
+    right: var(--fab-margin);
 }
 
 
@@ -243,28 +287,22 @@ body, html {
 }
 #storage-counter:hover { transform: scale(1.1); }
 
-/* --- QR Code Display Area Styling --- */
-#qr-code-display-area img { /* Target the img generated by qrcode.js */
-    display: block;
-    margin: 0 auto; 
-    border-radius: 4px; 
+/* --- QR Code Display Area Styling (from AppSync) --- */
+#qr-code-display-area img { 
+    display: block; margin: 0 auto; border-radius: 4px; 
 }
-
 #no-data-for-qr-message {
-    padding: 20px;
-    background-color: var(--md-sys-color-surface-container);
-    border: 1px dashed var(--md-sys-color-outline);
-    border-radius: 8px;
-    max-width: 300px;
-    margin: 20px auto;
+    padding: 20px; background-color: var(--md-sys-color-surface-container);
+    border: 1px dashed var(--md-sys-color-outline); border-radius: 8px;
+    max-width: 300px; margin: 20px auto;
 }
-
 
 /* Accessibility: Focus states for keyboard navigation */
-.nav-button:focus-visible, .header-button:focus-visible, .app-sync-button:focus-visible,
-.qr-generation-container button:focus-visible, /* Include buttons in QR gen mode */
-.form-setup-result-container button:focus-visible /* Include buttons after form setup parse */
- { 
+.nav-button:focus-visible, .header-button:focus-visible, 
+.app-sync-button:focus-visible, .fab-entry-mode:focus-visible,
+.qr-generation-container button:focus-visible, 
+.form-setup-result-container button:focus-visible,
+.camera-error button:focus-visible { 
     outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.12);
