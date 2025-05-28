@@ -170,7 +170,10 @@ body, html {
 }
 #dynamic-entry-form-area {
     flex-grow: 1; /* Allows this area to take up space if needed */
+    /* MODIFIED: Added top padding to clear the top-left FAB */
+    padding-top: calc(var(--fab-margin) + var(--fab-size) + 16px); /* fab-margin + fab-height + extra space */
     padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important; /* Ensure space for bottom FABs */
+    /* Inline styles from JS for text-align, margin, max-width, width will still apply */
 }
 
 
