@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>QUEST - QR Data Entry</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <link rel="stylesheet" href="index.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📱</text></svg>">
+</head>
+<body>
+
+    <header id="top-app-bar">
+        <div class="app-logo-title-group">
+            <img src="./img/icon.png" alt="QUEST App Logo" class="app-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0px';">
+            <span class="app-title">QUEST</span>
+        </div>
+        <button id="btn-help" class="header-button" aria-label="Help">
+            <span class="material-symbols-outlined">help_outline</span>
+        </button>
+    </header>
+
+    <div id="main-pane">
+        <h1>Welcome to QUEST</h1>
+        <p>Select an option below to begin.</p>
+    </div>
+
+    <nav id="navigation-bar">
+        <button id="btn-sync" class="nav-button" aria-label="App Sync">
+            <span class="material-symbols-outlined">qr_code_scanner</span>
+            <span class="nav-button-label">App Sync</span>
+        </button>
+        <button id="btn-add" class="nav-button" aria-label="Add Entry">
+            <span class="material-symbols-outlined">add_box</span>
+            <span class="nav-button-label">Add Entry</span>
+        </button>
+        <button id="btn-review" class="nav-button" aria-label="Review Entries">
+            <span class="material-symbols-outlined">library_books</span>
+            <span class="nav-button-label">Review</span>
+        </button>
+    </nav>
+
+    <div id="storage-counter">
+        <span id="storage-count-value">50</span> </div>
+
+    <script src="js_AppSync.js"></script>
+    <script src="js_AddEntry.js"></script>
+    <script src="js_Review.js"></script>
+    <script src="js_Help.js"></script>
+    <script src="main_EntryStorage.js"></script> <script src="main_script.js"></script>
+
+</body>
+</html>
