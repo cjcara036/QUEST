@@ -233,13 +233,9 @@ async function parseFormSetup(data) {
     console.log("parseFormSetup: Scanned QR Data:", data.substring(0,100)+"...");
     await window.stopCamera(); 
 
-    // Alert removed.
-    // console.log("Form Setup QR Code Scanned. Previous entries will be cleared and new form fields will be parsed."); // Log instead of alert
-
     if (typeof window.deleteAllEntryData === 'function') {
         window.deleteAllEntryData(); 
         console.log("parseFormSetup: deleteAllEntryData() called.");
-        // Explicitly reset LAST_ENTRY_LENGTH and update counter as deleteAllEntryData only deletes cookie
         if (typeof LAST_ENTRY_LENGTH !== 'undefined') {
              LAST_ENTRY_LENGTH = 50; 
              console.log("parseFormSetup: LAST_ENTRY_LENGTH reset to 50.");
@@ -277,9 +273,10 @@ async function parseFormSetup(data) {
                         <tbody>
             `;
             fields.forEach((field, index) => {
+                const fieldNameDisplay = field.fieldRequired ? `${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}*` : field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
                 htmlOutput += `
                     <tr style="background-color: ${index % 2 === 0 ? 'var(--md-sys-color-surface)' : 'var(--md-sys-color-background)'};">
-                        <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); white-space: nowrap;">${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); white-space: nowrap;">${fieldNameDisplay}</td>
                         <td style="padding: 12px 16px; border-bottom: 1px solid var(--md-sys-color-outline); font-style: ${field.fieldValue === "" ? 'italic' : 'normal'}; color: ${field.fieldValue === "" ? '#757575' : 'inherit'};">${field.fieldValue === "" ? '(empty)' : field.fieldValue.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
                     </tr>
                 `;
@@ -288,6 +285,7 @@ async function parseFormSetup(data) {
                         </tbody>
                     </table>
                 </div>
+                <p style="font-size: 0.9em; text-align: left; margin-top: 10px; max-width: 600px; margin-left: auto; margin-right: auto;"><em>* FieldNames with asterisks are required to be filled-up.</em></p>
             `;
         } else {
             htmlOutput += `<p style="margin-top: 15px; color: var(--md-sys-color-secondary);">No data fields were found in the QR code after parsing.</p>`;
@@ -295,7 +293,7 @@ async function parseFormSetup(data) {
         htmlOutput += `
                 <div style="margin-top: 25px;">
                     <button onclick="showFormSetupScan()" style="padding: 10px 15px; margin-right: 10px; cursor:pointer; background-color: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border: none; border-radius: 20px; font-weight: 500;">Scan Another Setup QR</button>
-                    </div>
+                </div>
             </div>
         `;
     } else {
@@ -303,7 +301,7 @@ async function parseFormSetup(data) {
         htmlOutput = `
             <div style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface);">
                 <h2 style="color: #B00020;">Error Parsing QR Code</h2>
-                <p>Invalid format. Please scan a valid Form Setup QR code.</p>
+                <p>Invalid format. Please scan a valid Form Setup QR code (e.g., Name:Value:T;Age::F).</p>
                 <button onclick="showFormSetupScan()" style="padding: 10px 15px; margin-top: 25px; cursor:pointer; background-color: var(--md-sys-color-primary); color: var(--md-sys-color-on-primary); border: none; border-radius: 20px; font-weight: 500;">Try Scanning Again</button>
             </div>
         `;
