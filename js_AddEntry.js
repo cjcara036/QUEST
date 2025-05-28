@@ -5,9 +5,94 @@
  */
 
 /**
+ * Helper function to format a Date object as "mm/dd/yyyy hh:mm" (24-hour).
+ * @param {Date} date - The date object to format.
+ * @returns {string} The formatted date-time string.
+ */
+function formatDateTime(date) {
+    const pad = (num) => String(num).padStart(2, '0');
+    const month = pad(date.getMonth() + 1); // Months are 0-indexed
+    const day = pad(date.getDate());
+    const year = date.getFullYear();
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    return `${month}/${day}/${year} ${hours}:${minutes}`;
+}
+
+/**
+ * Creates and populates the "EntryTable" (dynamic form) based on dataFields.
+ * Injects the table into the 'dynamic-entry-form-area' div.
+ */
+function fillDefaultEntryContent() {
+    console.log("fillDefaultEntryContent() called.");
+    const formArea = document.getElementById('dynamic-entry-form-area');
+    if (!formArea) {
+        console.error("fillDefaultEntryContent: dynamic-entry-form-area not found.");
+        return;
+    }
+
+    const currentDataFields = typeof getDataFields === 'function' ? getDataFields() : [];
+    if (currentDataFields.length === 0) {
+        // This case should ideally be handled by showAddEntryMenu,
+        // but as a safeguard:
+        formArea.innerHTML = "<p>No form fields defined. Please perform App Sync.</p>";
+        return;
+    }
+
+    let tableHTML = `
+        <table id="entry-table" class="entry-form-table">
+            <thead>
+                <tr>
+                    <th>Field Name</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    currentDataFields.forEach((field, index) => {
+        const fieldNameDisplay = field.fieldRequired ? 
+            `${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}*` : 
+            field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        
+        let initialValue = field.fieldValue;
+        if (field.fieldValue.toUpperCase() === "NOW()") {
+            initialValue = formatDateTime(new Date());
+        }
+        // Escape HTML characters for the value attribute
+        const escapedInitialValue = initialValue.replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        tableHTML += `
+            <tr>
+                <td>
+                    <label for="entry-field-${index}">${fieldNameDisplay}</label>
+                </td>
+                <td>
+                    <input type="text" 
+                           id="entry-field-${index}" 
+                           class="entry-field-input" 
+                           data-field-name="${field.fieldName.replace(/"/g, "&quot;")}" 
+                           value="${escapedInitialValue}">
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+            </tbody>
+        </table>
+        <p class="entry-table-footnote">* Required field</p>
+    `;
+
+    formArea.innerHTML = tableHTML;
+    console.log("fillDefaultEntryContent: Entry table populated.");
+}
+
+
+/**
  * Called when the "Add Entry" navigation button is pressed.
  * Checks if dataFields are populated. If not, prompts user to sync.
- * Otherwise, displays the data entry UI with FABs and a form area.
+ * Otherwise, displays the data entry UI with FABs and the dynamic form.
  */
 function showAddEntryMenu() {
     console.log("showAddEntryMenu() called.");
@@ -51,9 +136,8 @@ function showAddEntryMenu() {
                     <span class="fab-text">Clear Form</span>
                 </button>
 
-                <div id="dynamic-entry-form-area" style="padding: 20px 20px 80px 20px; /* Bottom padding to avoid overlap with FABs */ text-align: left; margin: 0 auto; max-width: 600px;">
-                    <h2 style="text-align:center; color: var(--md-sys-color-primary); margin-bottom: 20px;">Create New Entry</h2>
-                    <p style="text-align:center; margin-bottom: 25px;"><em>(Form fields based on setup will appear here. For now, this is a placeholder.)</em></p>
+                <div id="dynamic-entry-form-area" style="padding: 0px 0px 80px 0px; /* Adjusted padding */ text-align: left; margin: 0 auto; max-width: 600px; width: 100%;">
+                    <h2 style="text-align:center; color: var(--md-sys-color-primary); margin-bottom: 20px; margin-top: 10px;">Create New Entry</h2>
                     </div>
 
                 <button id="btn-scan-entry-data-fab" class="fab-entry-mode fab-bottom-left" aria-label="Scan Data">
@@ -76,6 +160,9 @@ function showAddEntryMenu() {
             if (mainPane) mainPane.innerHTML = addEntryViewHTML;
         }
 
+        // Populate the form area
+        fillDefaultEntryContent();
+
         // Add event listeners for the new FABs
         const btnClear = document.getElementById('btn-clear-form-fab');
         const btnScanData = document.getElementById('btn-scan-entry-data-fab');
@@ -85,22 +172,12 @@ function showAddEntryMenu() {
         if (btnScanData) btnScanData.addEventListener('click', clickQRScan);
         if (btnAddEntry) btnAddEntry.addEventListener('click', clickAddEntry);
 
-        // Setup hover/touch listeners for FAB expansion
         document.querySelectorAll('.fab-entry-mode').forEach(fab => {
             fab.addEventListener('mouseenter', () => fab.classList.add('expanded'));
             fab.addEventListener('mouseleave', () => fab.classList.remove('expanded'));
             fab.addEventListener('focus', () => fab.classList.add('expanded'));
             fab.addEventListener('blur', () => fab.classList.remove('expanded'));
-            // For touch devices, a simple click might be better than long press for expansion,
-            // or we can use mousedown/touchstart for expansion and mouseup/touchend for action.
-            // Current CSS handles expansion on hover/focus. For touch, :active state can be used or JS.
-            // Let's ensure :active also triggers expansion via CSS for tap-and-hold feel.
         });
-
-
-        // TODO: Call a function to dynamically render form fields into #dynamic-entry-form-area
-        // renderDynamicFormFields(currentDataFields); 
-        console.log("TODO: Call renderDynamicFormFields with:", currentDataFields);
     }
 }
 
@@ -123,23 +200,11 @@ function clickQRScan() {
 }
 
 /**
- * Placeholder function called when the "Clear" FAB is clicked.
+ * Called when the "Clear" FAB is clicked.
+ * Resets the form fields to their default values.
  */
 function clickClearEntry() {
-    console.log("clickClearEntry() called. (Placeholder)");
-    // TODO: Logic to clear all input fields in the dynamic form.
-    alert("Clear Form button clicked! (Functionality to be implemented)");
-    // Example: if form fields are rendered, you'd iterate and clear them.
-    // const formContainer = document.getElementById('dynamic-entry-form-area');
-    // formContainer.querySelectorAll('input, textarea').forEach(input => input.value = '');
+    console.log("clickClearEntry() called.");
+    fillDefaultEntryContent(); // Repopulate with defaults (handles "NOW()")
+    // alert("Form fields cleared/reset to defaults!"); // Optional feedback
 }
-
-// Function to dynamically render form fields (to be developed further)
-// function renderDynamicFormFields(fields) {
-//     const container = document.getElementById('dynamic-entry-form-area');
-//     if (!container) return;
-//     container.innerHTML = ''; // Clear previous form
-//     fields.forEach((field, index) => {
-//         // ... logic to create label and input for each field ...
-//     });
-// }
