@@ -16,6 +16,12 @@
 let dataFields = [];
 
 /**
+ * Separator character used between individual fieldName:fieldValue pairs within a single entry string.
+ * @type {string}
+ */
+const SEP_ENTRY_FIELD = "|"; // Renamed to avoid confusion with SEP_CHAR in main_EntryStorage.js
+
+/**
  * Parses a string containing field definitions (triplets) and populates the dataFields array.
  * The input string is expected to be a series of fieldName:fieldValue:fieldRequired triplets,
  * separated by semicolons.
@@ -28,42 +34,41 @@ function parseDataField(content) {
     console.log("parseDataField (triplet): Received content:", content);
     if (typeof content !== 'string' || content.trim() === "") {
         console.error("parseDataField (triplet): Content is not a string or is empty.");
-        dataFields = []; // Clear dataFields if content is invalid
+        dataFields = []; 
         return false;
     }
 
-    dataFields = []; // Clear the existing dataFields before parsing new content
+    dataFields = []; 
     const segments = content.split(';');
     let overallSuccess = true;
     let fieldsAdded = 0;
 
     segments.forEach((segment, segmentIndex) => {
         if (segment.trim() === "") {
-            // console.warn(`parseDataField (triplet): Empty segment at index ${segmentIndex}. Skipping.`);
-            return; // Skip empty segments (e.g., from trailing semicolons)
+            return; 
         }
 
         const parts = segment.split(':');
         if (parts.length !== 3) {
-            console.error(`parseDataField (triplet): Segment "${segment}" at index ${segmentIndex} does not have 3 parts (fieldName:fieldValue:fieldRequired). Found ${parts.length} parts.`);
+            console.error(`parseDataField (triplet): Segment "${segment}" at index ${segmentIndex} does not have 3 parts. Found ${parts.length}.`);
             overallSuccess = false;
-            return; // Skip this malformed segment
+            return; 
         }
 
         const fieldName = parts[0].trim();
-        const fieldValue = parts[1].trim(); // fieldValue can be empty
+        const fieldValue = parts[1].trim(); 
         const fieldRequiredStr = parts[2].trim().toUpperCase();
 
         if (fieldName === "") {
             console.error(`parseDataField (triplet): fieldName cannot be empty in segment "${segment}" at index ${segmentIndex}.`);
             overallSuccess = false;
-            return; // Skip this segment due to empty fieldName
+            return; 
         }
 
         if (fieldRequiredStr !== "T" && fieldRequiredStr !== "F") {
-            console.error(`parseDataField (triplet): fieldRequired value must be 'T' or 'F' (case-insensitive) in segment "${segment}" at index ${segmentIndex}. Found "${parts[2].trim()}".`);
+            console.error(`parseDataField (triplet): fieldRequired value must be 'T' or 'F' in segment "${segment}" at index ${segmentIndex}. Found "${parts[2].trim()}".`);
             overallSuccess = false;
-            return; // Skip this segment due to invalid fieldRequired value
+            return; 
         }
 
         const fieldRequired = (fieldRequiredStr === "T");
@@ -74,21 +79,14 @@ function parseDataField(content) {
             fieldRequired: fieldRequired
         });
         fieldsAdded++;
-        // console.log(`parseDataField (triplet): Added field - Name: "${fieldName}", Value: "${fieldValue}", Required: ${fieldRequired}`);
     });
 
     if (!overallSuccess) {
-        console.error("parseDataField (triplet): Parsing completed with one or more errors. dataFields may be incomplete or reflect only valid segments.");
-        // If any error occurs, we might want to clear dataFields to ensure no partial/incorrect setup.
-        // However, current logic allows valid parts of a malformed string to be parsed.
-        // If strict all-or-nothing parsing is needed, clear dataFields here if !overallSuccess.
-        // For now, we keep successfully parsed fields even if others fail.
+        console.error("parseDataField (triplet): Parsing completed with one or more errors.");
     } else {
-        console.log(`parseDataField (triplet): Parsing successful. ${fieldsAdded} fields populated:`, dataFields);
+        console.log(`parseDataField (triplet): Parsing successful. ${fieldsAdded} fields populated.`);
     }
     
-    // Return true if parsing was generally successful AND at least one field was actually added.
-    // This handles cases like an empty string or a string with only semicolons.
     return overallSuccess && fieldsAdded > 0;
 }
 
@@ -97,19 +95,34 @@ function parseDataField(content) {
  * @returns {Array<{fieldName: string, fieldValue: string, fieldRequired: boolean}>} A copy of the data fields.
  */
 function getDataFields() {
-    // Return a copy to prevent external modification of the internal array
     return dataFields.map(field => ({ ...field }));
 }
 
+/**
+ * Creates a string pair in the format "[fieldName]:[fieldValue]".
+ * @param {string} fieldName - The name of the field.
+ * @param {string} fieldValue - The value of the field.
+ * @returns {string} The formatted string pair.
+ */
+function makeDataFieldStringPair(fieldName, fieldValue) {
+    if (typeof fieldName !== 'string' || typeof fieldValue !== 'string') {
+        console.error("makeDataFieldStringPair: fieldName and fieldValue must be strings.");
+        return ""; // Return empty or handle error as appropriate
+    }
+    // Note: Values containing ":" or "|" will cause issues if not handled during parsing on the receiving end.
+    // For this tool's internal consistency, we assume they are simple strings for now.
+    return `${fieldName}:${fieldValue}`;
+}
 
-// Example usage (for testing in console):
-// parseDataField("Name:John Doe:T;Age:30:T;Email::F;Occupation:Developer:F;Notes:This is a note:T;");
-// console.log(getDataFields());
-// parseDataField("InvalidNoColonOrRequired;ValidName:ValidValue:T;EmptyName::EmptyValueOK:F;Another:TrailingSemicolon:X;Correct:Value:T");
-// console.log(getDataFields());
-// parseDataField("SingleField:NoSemicolon:T");
-// console.log(getDataFields());
-// parseDataField("Field1:Value1:T;;Field2:Value2:F"); // Test empty segment between valid ones
-// console.log(getDataFields());
-// parseDataField("Field1:Val1:G"); // Test invalid required flag
-// console.log(getDataFields());
+/**
+ * Consolidates an array of string pairs into a single string, separated by SEP_ENTRY_FIELD.
+ * @param {string[]} stringPairArray - An array of string pairs (e.g., ["Name:John", "Age:30"]).
+ * @returns {string} The consolidated entry string.
+ */
+function makeEntryString(stringPairArray) {
+    if (!Array.isArray(stringPairArray)) {
+        console.error("makeEntryString: Input must be an array.");
+        return "";
+    }
+    return stringPairArray.join(SEP_ENTRY_FIELD);
+}
