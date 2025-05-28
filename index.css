@@ -106,7 +106,6 @@
 .app-sync-button:hover { background-color: var(--md-sys-color-primary); transform: scale(1.05); }
 .app-sync-button .material-symbols-outlined { font-size: 22px; }
 
-/* Positioning for buttons in camera scanner view */
 #app-sync-container .app-sync-button.top-left { position: absolute; top: 20px; left: 20px; z-index: 103;}
 #app-sync-container .app-sync-button.bottom-center {
     position: absolute; z-index: 103;
@@ -163,12 +162,15 @@ body, html {
 
 /* --- Add Entry View Specific Container --- */
 .add-entry-view-container {
-    position: relative; /* Needed for absolute positioning of FABs if they were relative to this */
+    position: relative; 
     width: 100%;
-    height: 100%; /* Or min-height if content dictates size */
+    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); /* Ensure it can fill available space */
     display: flex;
     flex-direction: column;
-    /* justify-content: center; /* Centers form area if it's smaller than view */
+}
+#dynamic-entry-form-area {
+    flex-grow: 1; /* Allows this area to take up space if needed */
+    padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important; /* Ensure space for bottom FABs */
 }
 
 
@@ -177,7 +179,7 @@ body, html {
     background-color: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
     border: none;
-    border-radius: 50%; /* Circular by default */
+    border-radius: 50%; 
     width: var(--fab-size);
     height: var(--fab-size);
     display: flex;
@@ -185,10 +187,10 @@ body, html {
     justify-content: center;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
     cursor: pointer;
-    transition: width 0.25s ease-in-out, border-radius 0.25s ease-in-out, background-color 0.2s ease;
-    position: fixed; /* Fixed position relative to viewport */
-    z-index: 1050; /* Above main pane content, below nav bar if overlapping */
-    overflow: hidden; /* Important for text hiding/showing */
+    transition: width 0.25s ease-in-out, border-radius 0.25s ease-in-out, background-color 0.2s ease, padding 0.25s ease-in-out;
+    position: fixed; 
+    z-index: 1050; 
+    overflow: hidden; 
 }
 .fab-entry-mode .material-symbols-outlined {
     font-size: var(--fab-icon-size);
@@ -204,25 +206,35 @@ body, html {
     transition: opacity 0.2s ease-in-out 0.05s, max-width 0.2s ease-in-out 0.05s, margin-left 0.2s ease-in-out;
 }
 
-/* Expanded state for FABs (on hover, focus, active/touch) */
 .fab-entry-mode.expanded,
 .fab-entry-mode:hover,
 .fab-entry-mode:focus,
-.fab-entry-mode:active { /* :active for touch hold feel */
-    width: auto; /* Expand to fit content */
-    border-radius: 28px; /* Pill shape */
-    padding-left: 16px; 
-    padding-right: 20px; 
-    background-color: var(--md-sys-color-primary); /* Darker on interaction */
+.fab-entry-mode:active { 
+    width: auto; 
+    border-radius: 28px; 
+    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2); /* Center icon when circular */
+    padding-right: 16px; 
 }
+.fab-entry-mode.expanded .material-symbols-outlined,
+.fab-entry-mode:hover .material-symbols-outlined,
+.fab-entry-mode:focus .material-symbols-outlined,
+.fab-entry-mode:active .material-symbols-outlined {
+    margin-right: 0; /* Reset margin if icon was centered */
+}
+
 .fab-entry-mode.expanded .fab-text,
 .fab-entry-mode:hover .fab-text,
 .fab-entry-mode:focus .fab-text,
 .fab-entry-mode:active .fab-text {
     opacity: 1;
-    max-width: 150px; /* Adjust as needed */
+    max-width: 150px; 
     margin-left: 8px;
 }
+/* Specific centering for icon when not expanded */
+.fab-entry-mode:not(.expanded):not(:hover):not(:focus):not(:active) .material-symbols-outlined {
+    margin-left: auto; margin-right: auto; /* Center icon */
+}
+
 
 /* Positioning for FABs */
 .fab-entry-mode.fab-top-left {
@@ -236,6 +248,60 @@ body, html {
 .fab-entry-mode.fab-bottom-right {
     bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + var(--fab-margin));
     right: var(--fab-margin);
+}
+
+/* --- Entry Form Table Styles --- */
+.entry-form-table {
+    width: 100%;
+    border-collapse: separate; /* Use separate for border-spacing */
+    border-spacing: 0 8px; /* Spacing between rows */
+    margin-top: 10px;
+    table-layout: fixed; /* Helps with consistent column widths */
+}
+.entry-form-table th, .entry-form-table td {
+    text-align: left;
+    padding: 10px;
+    vertical-align: middle;
+}
+.entry-form-table th {
+    color: var(--md-sys-color-primary);
+    font-weight: 500;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--md-sys-color-outline);
+}
+.entry-form-table td:first-child { /* Field Name column */
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    padding-right: 15px;
+    width: 40%; /* Adjust as needed */
+    word-wrap: break-word;
+}
+.entry-form-table td:last-child { /* Value column */
+    width: 60%; /* Adjust as needed */
+}
+.entry-field-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 6px;
+    font-size: 1rem;
+    color: var(--md-sys-color-on-surface);
+    background-color: var(--md-sys-color-surface);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.entry-field-input:focus {
+    border-color: var(--md-sys-color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
+    outline: none;
+}
+.entry-table-footnote {
+    font-size: 0.85em;
+    text-align: left;
+    margin-top: 10px;
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 
@@ -302,8 +368,16 @@ body, html {
 .app-sync-button:focus-visible, .fab-entry-mode:focus-visible,
 .qr-generation-container button:focus-visible, 
 .form-setup-result-container button:focus-visible,
-.camera-error button:focus-visible { 
+.camera-error button:focus-visible,
+.entry-field-input:focus-visible { 
     outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
-    background-color: rgba(var(--md-sys-color-primary-rgb), 0.12);
+}
+.entry-field-input:focus-visible { /* Specific focus for inputs if different from buttons */
+    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
+}
+
+/* Ensure buttons don't get default browser outline if we provide custom */
+button:focus {
+    outline: none;
 }
