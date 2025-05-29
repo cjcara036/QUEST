@@ -8,6 +8,7 @@
 // --- State variables for Add Entry mode ---
 let isEntryDataScanningMode = false; // Tracks if the field data QR scanner is active
 let tempEntryFieldValues = []; // Stores {id, originalFieldNameLC, value}
+let currentEditingOriginalData = null; // Stores the original data of the entry being edited for "Clear" functionality
 
 // --- Camera/Scanner state variables specific to this Add Entry scanner ---
 let entryDataCameraStream = null;
@@ -30,9 +31,10 @@ function formatDateTime(date) {
 
 /**
  * Creates and populates the "EntryTable" (dynamic form) based on dataFields.
+ * If entryDataToEdit is provided, it populates the form with that data.
  */
-function fillDefaultEntryContent() {
-    console.log("fillDefaultEntryContent() called.");
+function fillDefaultEntryContent(entryDataToEdit = null) {
+    console.log("fillDefaultEntryContent() called. Editing data:", entryDataToEdit);
     const formArea = document.getElementById('dynamic-entry-form-area');
     if (!formArea) {
         console.error("fillDefaultEntryContent: dynamic-entry-form-area not found.");
@@ -42,8 +44,23 @@ function fillDefaultEntryContent() {
     if (existingValidationMsg) existingValidationMsg.remove();
 
     const currentDataFields = typeof getDataFields === 'function' ? getDataFields() : [];
-    if (currentDataFields.length === 0) {
-        formArea.innerHTML = "<p>No form fields defined. Please perform App Sync.</p>";
+    // Determine the fields to use: either the global dataFields (for a new entry)
+    // or the structure from the entry being edited.
+    const fieldsToRender = entryDataToEdit ? 
+        entryDataToEdit.map(f => ({ 
+            fieldName: f.fieldName, 
+            fieldValue: f.fieldValue, // This will be the value from the entry being edited
+            // Get 'fieldRequired' status from the global dataFields setup, matching by fieldName
+            fieldRequired: (currentDataFields.find(df => df.fieldName === f.fieldName) || {}).fieldRequired || false 
+        })) : 
+        currentDataFields;
+
+    if (fieldsToRender.length === 0) {
+        formArea.innerHTML = "<p>No form fields defined. Please perform App Sync or check setup.</p>";
+        // Optionally hide FABs if no form can be shown
+        document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'none', 'important');
+        document.getElementById('btn-scan-entry-data-fab')?.style.setProperty('display', 'none', 'important');
+        document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'none', 'important');
         return;
     }
 
@@ -52,22 +69,27 @@ function fillDefaultEntryContent() {
         <table id="entry-table" class="entry-form-table">
             <thead><tr><th>Field Name</th><th>Value</th></tr></thead>
             <tbody>`;
-    currentDataFields.forEach((field, index) => {
+    fieldsToRender.forEach((field, index) => {
         const fieldNameDisplay = field.fieldRequired ? `${field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;")}*` : field.fieldName.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        let initialValue = field.fieldValue;
-        if (field.fieldValue.toUpperCase() === "NOW()") initialValue = formatDateTime(new Date());
+        
+        let initialValue = field.fieldValue; // This is either from dataFields default or from entryDataToEdit
+        if (!entryDataToEdit && field.fieldValue && field.fieldValue.toUpperCase() === "NOW()") { // Only process NOW() for new entries
+            initialValue = formatDateTime(new Date());
+        }
         const escapedInitialValue = initialValue.replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
         tableHTML += `
             <tr>
                 <td><label for="entry-field-${index}">${fieldNameDisplay}</label></td>
                 <td><input type="text" id="entry-field-${index}" class="entry-field-input" 
                            data-original-field-name="${field.fieldName.replace(/"/g, "&quot;")}"
-                           data-is-required="${field.fieldRequired}" value="${escapedInitialValue}">
+                           data-is-required="${field.fieldRequired === true}" value="${escapedInitialValue}">
                 </td>
             </tr>`;
     });
     tableHTML += `</tbody></table><p class="entry-table-footnote">* Required field</p>`;
     formArea.innerHTML = tableHTML;
+    console.log("fillDefaultEntryContent: Entry table populated.");
 }
 
 /**
@@ -109,13 +131,23 @@ function restoreEntryFieldData() {
  */
 function showAddEntryMenu(isRestoring = false) {
     console.log("showAddEntryMenu called. isRestoring:", isRestoring);
+    let entryDataForEditing = null;
+    currentEditingOriginalData = null; // Clear any previous edit data backup
+
+    if (window.tmp_EntryForEdit) {
+        console.log("showAddEntryMenu: Editing mode detected. Data:", window.tmp_EntryForEdit);
+        entryDataForEditing = window.tmp_EntryForEdit;
+        currentEditingOriginalData = JSON.parse(JSON.stringify(window.tmp_EntryForEdit)); // Backup for clear
+        window.tmp_EntryForEdit = null; 
+        isRestoring = false; 
+    }
 
     if (typeof window.clearMainPane === 'function') window.clearMainPane();
     else console.error("showAddEntryMenu: clearMainPane() function is not defined.");
 
     const currentDataFields = typeof getDataFields === 'function' ? getDataFields() : [];
 
-    if (currentDataFields.length === 0) {
+    if (currentDataFields.length === 0 && !entryDataForEditing) { 
         const promptToSyncHTML = `
             <div style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface);">
                 <h2 style="color: var(--md-sys-color-secondary); margin-bottom: 15px;">Setup Required</h2>
@@ -130,19 +162,23 @@ function showAddEntryMenu(isRestoring = false) {
                     <span class="material-symbols-outlined">delete</span><span class="fab-text">Clear Form</span>
                 </button>
                 <div id="dynamic-entry-form-area" style="text-align:left;margin:0 auto;max-width:600px;width:100%;">
-                    <h2 style="text-align:center;color:var(--md-sys-color-primary);margin-bottom:10px;margin-top:10px;">Create New Entry</h2>
+                    <h2 style="text-align:center;color:var(--md-sys-color-primary);margin-bottom:10px;margin-top:10px;">
+                        ${entryDataForEditing ? 'Edit Entry' : 'Create New Entry'}
+                    </h2>
                 </div>
                 <button id="btn-scan-entry-data-fab" class="fab-entry-mode fab-bottom-left" aria-label="Scan Data">
                     <span class="material-symbols-outlined">document_scanner</span><span class="fab-text">Scan Data</span>
                 </button>
-                <button id="btn-add-created-entry-fab" class="fab-entry-mode fab-bottom-right" aria-label="Add Entry">
-                    <span class="material-symbols-outlined">add</span><span class="fab-text">Add Entry</span>
+                <button id="btn-add-created-entry-fab" class="fab-entry-mode fab-bottom-right" aria-label="${entryDataForEditing ? 'Save Changes' : 'Add Entry'}">
+                    <span class="material-symbols-outlined">${entryDataForEditing ? 'save' : 'add'}</span>
+                    <span class="fab-text">${entryDataForEditing ? 'Save Changes' : 'Add Entry'}</span>
                 </button>
             </div>`;
         if (typeof window.injectHTMLToMainPane === 'function') window.injectHTMLToMainPane(addEntryViewHTML);
         
-        fillDefaultEntryContent(); 
-        if (isRestoring) {
+        fillDefaultEntryContent(entryDataForEditing); 
+        
+        if (isRestoring && !entryDataForEditing) { 
             restoreEntryFieldData();
         }
 
@@ -154,7 +190,7 @@ function showAddEntryMenu(isRestoring = false) {
         }
         document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'flex', 'important');
 
-        document.getElementById('btn-clear-form-fab')?.addEventListener('click', clickClearEntry);
+        document.getElementById('btn-clear-form-fab')?.addEventListener('click', () => clickClearEntry(!!entryDataForEditing || !!currentEditingOriginalData));
         document.getElementById('btn-scan-entry-data-fab')?.addEventListener('click', clickQRScan); 
         document.getElementById('btn-add-created-entry-fab')?.addEventListener('click', clickAddEntry);
 
@@ -192,7 +228,7 @@ function displayEntryDataScannerUI() {
     scannerWrapper.style.zIndex = "1060"; 
     mainPane.appendChild(scannerWrapper);
 
-    const tempVideoBg = ""; // "background-color: limegreen;"; 
+    const tempVideoBg = ""; 
     const scannerHTML = `
         <div id="entry-data-scanner-container" class="app-sync-container" style="position:absolute; top:0; left:0; right:0; bottom:0; background-color: #000;"> 
             <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1; ${tempVideoBg}"></video>
@@ -260,7 +296,9 @@ async function startEntryDataCamera(deviceId, videoElementInstance) {
     }
 }
 
-async function stopEntryDataCamera() {
+window.stopEntryDataCamera = async function() { // Make it globally accessible
+    console.log("stopEntryDataCamera called.");
+    isEntryDataScanningMode = false; // Ensure this flag is reset when explicitly stopping
     if (entryDataScanAnimationFrameId) {
         cancelAnimationFrame(entryDataScanAnimationFrameId);
         entryDataScanAnimationFrameId = null;
@@ -317,6 +355,7 @@ function scanEntryDataFrame() {
         const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
         if (code && code.data) {
+            // Assuming checkIfCodeInTargetArea is globally available from js_AppSync.js
             if (typeof checkIfCodeInTargetArea === 'function' && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
                 console.log("Entry Data QR Scanned:", code.data);
                 let qrScannedDataArray = null;
@@ -340,7 +379,6 @@ function scanEntryDataFrame() {
                                 const newValue = qrDataMap[tempField.originalFieldNameLC];
                                 if (tempField.value !== newValue) { 
                                     tempField.value = newValue;
-                                    // For the alert, get the original casing of the field name if possible
                                     const originalCasingFieldName = document.getElementById(tempField.id)?.dataset.originalFieldName || tempField.originalFieldNameLC;
                                     updatedFieldsList.push(originalCasingFieldName); 
                                 }
@@ -375,9 +413,9 @@ function clickQRScan() {
     const fabScanText = fabScan ? fabScan.querySelector('.fab-text') : null;
 
     if (isEntryDataScanningMode) { 
-        stopEntryDataCamera(); 
-        showAddEntryMenu(true); 
-        isEntryDataScanningMode = false;
+        stopEntryDataCamera(); // This now also resets isEntryDataScanningMode
+        showAddEntryMenu(true); // Pass true to restore (potentially updated) values
+        // isEntryDataScanningMode is already false due to stopEntryDataCamera
     } else { 
         saveCurrentEntryFieldData(); 
         displayEntryDataScannerUI(); 
@@ -478,9 +516,23 @@ function showAddEntrySuccessScreen() {
     if (typeof window.injectHTMLToMainPane === 'function') window.injectHTMLToMainPane(successHTML);
 }
 
-function clickClearEntry() {
-    console.log("clickClearEntry() called.");
+function clickClearEntry(wasEditing = false) {
+    console.log("clickClearEntry() called. wasEditing:", wasEditing);
     clearValidationMessages();
-    fillDefaultEntryContent(); 
-    console.log("Form fields cleared/reset to defaults.");
+    if (wasEditing && currentEditingOriginalData) {
+        fillDefaultEntryContent(currentEditingOriginalData);
+        console.log("Form fields reverted to original edit state.");
+    } else {
+        fillDefaultEntryContent(null); 
+        console.log("Form fields cleared/reset to defaults for new entry.");
+    }
+    const titleElement = document.querySelector('#dynamic-entry-form-area h2');
+    if(titleElement) titleElement.textContent = 'Create New Entry';
+    const addFab = document.getElementById('btn-add-created-entry-fab');
+    if(addFab) {
+        addFab.querySelector('.material-symbols-outlined').textContent = 'add';
+        addFab.querySelector('.fab-text').textContent = 'Add Entry';
+        addFab.setAttribute('aria-label', 'Add Entry');
+    }
+    currentEditingOriginalData = null; 
 }
