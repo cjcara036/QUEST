@@ -45,7 +45,7 @@
     --nav-bar-bottom-margin: 24px; /* Space below the nav bar */
     --nav-bar-horizontal-padding: 12px;
     --nav-bar-vertical-padding: 8px;
-    
+
     --nav-button-icon-size: 24px;
     --nav-button-label-font-size: 12px;
     --nav-button-min-width: 56px;
@@ -69,10 +69,10 @@
 }
 
 /* --- App Sync / Scanner Specific Styles --- */
-#app-sync-container { 
+#app-sync-container {
     position: absolute; top: var(--top-app-bar-height); left: 0; right: 0; bottom: 0;
     background-color: #000; overflow: hidden; display: flex;
-    justify-content: center; align-items: center; z-index: 100; 
+    justify-content: center; align-items: center; z-index: 100;
 }
 #camera-feed {
     position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
@@ -82,17 +82,17 @@
     position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 102;
     display: flex; justify-content: center; align-items: center;
     background: radial-gradient( circle at center, transparent 0%,
-        transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), 
+        transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2),
         var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px) );
 }
 #scan-target-area {
-    width: min(var(--target-area-size), var(--target-area-max-size)); 
+    width: min(var(--target-area-size), var(--target-area-max-size));
     height: min(var(--target-area-size), var(--target-area-max-size));
     position: relative; border: 2px dashed rgba(255, 255, 255, 0.7);
     border-radius: 16px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
 .corner {
-    position: absolute; width: 20px; height: 20px; 
+    position: absolute; width: 20px; height: 20px;
     border-color: rgba(255, 255, 255, 0.9); border-style: solid; border-width: 0;
 }
 .corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;}
@@ -100,7 +100,7 @@
 .corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
 .corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
 
-.app-sync-button { 
+.app-sync-button {
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.8);
     color: var(--md-sys-color-on-primary); border: none; border-radius: 28px;
     padding: 10px 16px; display: flex; align-items: center; gap: 8px;
@@ -156,27 +156,27 @@ body, html {
 
 /* --- Main Pane Styling --- */
 #main-pane {
-    width: 100%; flex-grow: 1; 
+    width: 100%; flex-grow: 1;
     padding-top: var(--top-app-bar-height);
     padding-left: 16px; padding-right: 16px;
-    padding-bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px); 
-    overflow-y: auto; position: relative; 
+    padding-bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
+    overflow-y: auto; position: relative;
     text-align: center; background-color: var(--md-sys-color-background);
     box-sizing: border-box;
 }
 
 /* --- Add Entry View Specific Container --- */
 .add-entry-view-container {
-    position: relative; 
+    position: relative;
     width: 100%;
-    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); 
+    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) );
     display: flex;
     flex-direction: column;
 }
 #dynamic-entry-form-area {
-    flex-grow: 1; 
-    padding-top: calc(var(--fab-margin) + var(--fab-size) + 16px); 
-    padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important; 
+    flex-grow: 1;
+    padding-top: calc(var(--fab-margin) + var(--fab-size) + 16px);
+    padding-bottom: calc(var(--fab-size) + var(--fab-margin) + 10px) !important;
 }
 
 
@@ -185,7 +185,7 @@ body, html {
     background-color: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
     border: none;
-    border-radius: 50%; 
+    border-radius: 50%;
     width: var(--fab-size);
     height: var(--fab-size);
     display: flex;
@@ -194,9 +194,9 @@ body, html {
     box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.1);
     cursor: pointer;
     transition: width 0.25s ease-in-out, border-radius 0.25s ease-in-out, background-color 0.2s ease, padding 0.25s ease-in-out;
-    position: fixed; 
-    z-index: 1050; 
-    overflow: hidden; 
+    position: fixed;
+    z-index: 1050;
+    overflow: hidden;
 }
 .fab-entry-mode .material-symbols-outlined {
     font-size: var(--fab-icon-size);
@@ -215,17 +215,17 @@ body, html {
 .fab-entry-mode.expanded,
 .fab-entry-mode:hover,
 .fab-entry-mode:focus,
-.fab-entry-mode:active { 
-    width: auto; 
-    border-radius: 28px; 
-    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2); 
-    padding-right: 16px; 
+.fab-entry-mode:active {
+    width: auto;
+    border-radius: 28px;
+    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2);
+    padding-right: 16px;
 }
 .fab-entry-mode.expanded .material-symbols-outlined,
 .fab-entry-mode:hover .material-symbols-outlined,
 .fab-entry-mode:focus .material-symbols-outlined,
 .fab-entry-mode:active .material-symbols-outlined {
-    margin-right: 0; 
+    margin-right: 0;
 }
 
 .fab-entry-mode.expanded .fab-text,
@@ -233,11 +233,11 @@ body, html {
 .fab-entry-mode:focus .fab-text,
 .fab-entry-mode:active .fab-text {
     opacity: 1;
-    max-width: 150px; 
+    max-width: 150px;
     margin-left: 8px;
 }
 .fab-entry-mode:not(.expanded):not(:hover):not(:focus):not(:active) .material-symbols-outlined {
-    margin-left: auto; margin-right: auto; 
+    margin-left: auto; margin-right: auto;
 }
 
 
@@ -258,10 +258,10 @@ body, html {
 /* --- Entry Form Table Styles --- */
 .entry-form-table {
     width: 100%;
-    border-collapse: separate; 
-    border-spacing: 0 8px; 
+    border-collapse: separate;
+    border-spacing: 0 8px;
     margin-top: 10px;
-    table-layout: fixed; 
+    table-layout: fixed;
 }
 .entry-form-table th, .entry-form-table td {
     text-align: left;
@@ -276,15 +276,15 @@ body, html {
     letter-spacing: 0.5px;
     border-bottom: 2px solid var(--md-sys-color-outline);
 }
-.entry-form-table td:first-child { 
+.entry-form-table td:first-child {
     font-weight: 500;
     color: var(--md-sys-color-on-surface-variant);
     padding-right: 15px;
-    width: 40%; 
+    width: 40%;
     word-wrap: break-word;
 }
-.entry-form-table td:last-child { 
-    width: 60%; 
+.entry-form-table td:last-child {
+    width: 60%;
 }
 .entry-field-input {
     width: 100%;
@@ -358,7 +358,7 @@ body, html {
     transition: font-variation-settings 0.25s ease-in-out, color 0.25s ease-in-out; flex-shrink: 0;
 }
 .nav-button-label {
-    font-size: var(--nav-button-label-font-size); font-weight: 500; 
+    font-size: var(--nav-button-label-font-size); font-weight: 500;
     white-space: nowrap; opacity: 0; max-width: 0; overflow: hidden;
     transition: opacity 0.25s ease-in-out, max-width 0.25s ease-in-out 0.05s, margin-left 0.25s ease-in-out;
     color: var(--md-sys-color-on-secondary-container); margin-left: 0;
@@ -383,8 +383,8 @@ body, html {
 #storage-counter:hover { transform: scale(1.1); }
 
 /* --- QR Code Display Area Styling (from AppSync) --- */
-#qr-code-display-area img { 
-    display: block; margin: 0 auto; border-radius: 4px; 
+#qr-code-display-area img {
+    display: block; margin: 0 auto; border-radius: 4px;
 }
 #no-data-for-qr-message {
     padding: 20px; background-color: var(--md-sys-color-surface-container);
@@ -412,20 +412,206 @@ body, html {
 
 
 /* Accessibility: Focus states for keyboard navigation */
-.nav-button:focus-visible, .header-button:focus-visible, 
+.nav-button:focus-visible, .header-button:focus-visible,
 .app-sync-button:focus-visible, .fab-entry-mode:focus-visible,
-.qr-generation-container button:focus-visible, 
+.qr-generation-container button:focus-visible,
 .form-setup-result-container button:focus-visible,
 .camera-error button:focus-visible,
 .entry-field-input:focus-visible,
-.quest-button:focus-visible { 
+.quest-button:focus-visible {
     outline: 2px solid var(--md-sys-color-primary);
     outline-offset: 2px;
 }
-.entry-field-input:focus-visible { 
+.entry-field-input:focus-visible {
     box-shadow: 0 0 0 2px rgba(var(--md-sys-color-primary-rgb), 0.2);
 }
 
 button:focus {
     outline: none;
+}
+
+/* --- Review Mode Specific Styles --- */
+.review-mode-container {
+    display: flex;
+    flex-direction: column; /* Main axis for overall layout */
+    align-items: center;    /* Center content horizontally */
+    justify-content: space-between; /* Pushes controls to edges if height allows */
+    height: 100%; /* Take full height of main-pane */
+    padding-top: 20px; /* Space from top */
+    padding-bottom: 20px; /* Space from bottom controls */
+    box-sizing: border-box;
+    position: relative; /* For positioning of nav arrows if needed */
+}
+
+/* Navigation Arrows for Review */
+.review-nav-arrow {
+    background-color: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface-variant);
+    border: none;
+    border-radius: 50%;
+    width: 48px; /* Consistent touch target size */
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+    position: absolute; /* Position relative to review-mode-container */
+    top: 50%;
+    transform: translateY(-50%); /* Vertically center */
+    z-index: 10; /* Ensure they are above the card */
+}
+.review-nav-arrow:hover {
+    background-color: rgba(var(--md-sys-color-primary-rgb), 0.08);
+}
+.review-nav-arrow:active {
+    transform: translateY(-50%) scale(0.95);
+}
+.review-nav-arrow:disabled {
+    background-color: rgba(0,0,0,0.05);
+    color: rgba(0,0,0,0.3);
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.review-nav-arrow .material-symbols-outlined {
+    font-size: 28px;
+}
+.review-nav-arrow.left {
+    left: 16px; /* Adjust as needed */
+}
+.review-nav-arrow.right {
+    right: 16px; /* Adjust as needed */
+}
+
+
+/* Entry Card Container and Display Area */
+#review-entry-card-container {
+    width: 100%;
+    max-width: 500px; /* Max width for the card content */
+    margin: 0 auto; /* Center the card horizontally */
+    flex-grow: 1; /* Allow it to take available space */
+    display: flex;
+    align-items: center; /* Vertically center content within if space allows */
+    justify-content: center;
+    perspective: 1000px; /* For 3D-like swipe animations */
+    overflow: hidden; /* Important for animations */
+}
+
+#review-entry-display-area {
+    background-color: var(--md-sys-color-surface);
+    border-radius: 12px; /* Softer corners */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.08);
+    padding: 20px 24px;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out; /* For swipe animation */
+}
+
+/* Swipe Animations for Review Card */
+.swipe-left-animation {
+    transform: translateX(-100%) rotateY(-15deg);
+    opacity: 0;
+}
+.swipe-right-animation {
+    transform: translateX(100%) rotateY(15deg);
+    opacity: 0;
+}
+
+
+/* Review Entry Table Styling */
+.review-entry-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px; /* Space between rows */
+}
+.review-entry-table h3 { /* Style for "Entry X" title */
+    text-align: center;
+    color: var(--md-sys-color-primary);
+    margin-bottom: 20px;
+    font-size: var(--md-font-title-large-size);
+    font-weight: var(--md-font-title-weight);
+}
+.review-entry-table td {
+    padding: 8px 0; /* Reduced padding for a cleaner look within the card */
+    vertical-align: top;
+}
+.review-field-name {
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    padding-right: 16px; /* Space between name and value */
+    white-space: nowrap;
+    width: 35%; /* Adjust as needed */
+}
+.review-field-value {
+    color: var(--md-sys-color-on-surface);
+    word-wrap: break-word; /* Ensure long values wrap */
+    width: 65%; /* Adjust as needed */
+}
+
+/* Bottom Controls Area (Progress Indicator and Edit Button) */
+.review-bottom-controls {
+    display: flex;
+    justify-content: space-between; /* Puts indicator left, button right */
+    align-items: center;
+    width: 100%;
+    max-width: calc(500px + 32px); /* Max-width of card + some padding */
+    padding: 0 16px; /* Horizontal padding for the controls themselves */
+    margin-top: 16px; /* Space above the controls */
+    box-sizing: border-box;
+    height: var(--fab-size); /* Align with FAB height */
+}
+
+#review-progress-indicator {
+    font-size: 14px;
+    color: var(--md-sys-color-on-surface-variant);
+    flex-grow: 1; /* Allows it to take space */
+    text-align: left;
+}
+
+/* Review Edit Button - using fab-entry-mode for consistency */
+.review-edit-button {
+    /* .fab-entry-mode styles are mostly inherited from index.css */
+    /* Specific positioning or minor overrides can go here if needed */
+    position: relative; /* No longer fixed, part of the controls bar */
+    background-color: var(--md-sys-color-primary); /* Match primary FAB */
+    color: var(--md-sys-color-on-primary);
+}
+.review-edit-button:hover {
+    background-color: var(--md-sys-color-secondary);
+}
+.review-edit-button.expanded,
+.review-edit-button:hover {
+    /* Ensure expanded style is consistent if not using fixed positioning */
+    padding-left: calc((var(--fab-size) - var(--fab-icon-size)) / 2);
+    padding-right: 16px;
+}
+
+
+/* Styling for "No Entries" message */
+.no-entries-container {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--md-sys-color-on-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+}
+.no-entries-container .material-symbols-outlined {
+    font-size: 60px;
+    color: var(--md-sys-color-secondary); /* Or primary, depending on emphasis */
+    margin-bottom: 15px;
+}
+.no-entries-container h2 {
+    color: var(--md-sys-color-secondary); /* Or primary */
+    margin-bottom: 10px;
+    font-size: var(--md-font-title-large-size);
+    font-weight: var(--md-font-title-weight);
+}
+.no-entries-container p {
+    margin-bottom: 25px;
+    font-size: 1rem;
 }
