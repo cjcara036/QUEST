@@ -89,7 +89,7 @@ function parseQRDataEntry(qrCodeString) {
 
     pairs.forEach((pair, index) => {
         if (pair.trim() === "") {
-            return; // Skip empty segments
+            return; 
         }
 
         const colonIndex = pair.indexOf(':');
@@ -99,7 +99,7 @@ function parseQRDataEntry(qrCodeString) {
         }
 
         const fieldName = pair.substring(0, colonIndex).trim();
-        const fieldValue = pair.substring(colonIndex + 1).trim(); // Value can be empty
+        const fieldValue = pair.substring(colonIndex + 1).trim(); 
 
         if (fieldName === "") {
             console.warn(`parseQRDataEntry: fieldName is empty in pair "${pair}" at index ${index}. Skipping.`);
@@ -110,7 +110,6 @@ function parseQRDataEntry(qrCodeString) {
     });
     
     if (!foundAtLeastOneValidPair) {
-        // This means the string was not empty, but contained no parsable fieldName:fieldValue pairs.
         throw new Error("QR code data is malformed or contains no valid field-value pairs.");
     }
     
@@ -120,7 +119,7 @@ function parseQRDataEntry(qrCodeString) {
 
 
 /**
- * Returns a copy of the dataFields array.
+ * Returns a copy of the dataFields array (form setup).
  */
 function getDataFields() {
     return dataFields.map(field => ({ ...field }));
@@ -146,4 +145,68 @@ function makeEntryString(stringPairArray) {
         return "";
     }
     return stringPairArray.join(SEP_ENTRY_FIELD);
+}
+
+/**
+ * Retrieves all stored entries from the cookie and parses them into a structured array of objects.
+ * Each entry in the main array is an array of field objects {fieldName, fieldValue}.
+ * Assumes SEP_CHAR is globally available from main_EntryStorage.js (e.g., '~')
+ * Assumes getAllEntryData is globally available from main_EntryStorage.js
+ * Uses SEP_ENTRY_FIELD from this file (e.g., '|')
+ * @returns {Array<Array<{fieldName: string, fieldValue: string}>>} An array of entries, 
+ * where each entry is an array of its field-value pairs. Returns empty array if no data or error.
+ */
+function getAllEntriesAsObjects() {
+    if (typeof getAllEntryData !== 'function') {
+        console.error("getAllEntriesAsObjects: getAllEntryData() function is not available.");
+        return [];
+    }
+    
+    const allEntriesString = getAllEntryData(); 
+    if (!allEntriesString) {
+        return []; 
+    }
+
+    // SEP_CHAR is defined in main_EntryStorage.js as: const SEP_CHAR = "~";
+    // It should be globally accessible if main_EntryStorage.js is loaded before this file.
+    // If not, this will cause an error. A safer approach is to pass it or define it here.
+    // For now, assuming it's globally accessible.
+    const entrySeparator = typeof SEP_CHAR === 'string' ? SEP_CHAR : "~"; // Fallback just in case
+
+
+    const individualEntryStrings = allEntriesString.split(entrySeparator);
+    const allParsedEntries = [];
+
+    individualEntryStrings.forEach(entryStr => {
+        if (entryStr.trim() === "") return; 
+
+        const fieldPairs = entryStr.split(SEP_ENTRY_FIELD); // SEP_ENTRY_FIELD from this file
+        const currentEntryFields = [];
+        
+        fieldPairs.forEach(pairStr => {
+            if (pairStr.trim() === "") return;
+
+            const colonIndex = pairStr.indexOf(':');
+            if (colonIndex === -1) {
+                console.warn(`getAllEntriesAsObjects: Malformed pair (missing colon) in entry: "${pairStr}". Skipping pair.`);
+                return; 
+            }
+
+            const fieldName = pairStr.substring(0, colonIndex).trim();
+            const fieldValue = pairStr.substring(colonIndex + 1).trim(); 
+
+            if (fieldName === "") {
+                console.warn(`getAllEntriesAsObjects: Empty fieldName in pair: "${pairStr}". Skipping pair.`);
+                return; 
+            }
+            currentEntryFields.push({ fieldName: fieldName, fieldValue: fieldValue });
+        });
+
+        if (currentEntryFields.length > 0) {
+            allParsedEntries.push(currentEntryFields);
+        }
+    });
+
+    console.log("getAllEntriesAsObjects: Parsed all entries:", allParsedEntries);
+    return allParsedEntries;
 }
