@@ -106,7 +106,7 @@ function restoreEntryFieldData() {
  */
 function showAddEntryMenu(isRestoring = false) {
     console.log("showAddEntryMenu called. isRestoring:", isRestoring);
-    // isEntryDataScanningMode = false; // This is set in clickQRScan before calling this
+    // isEntryDataScanningMode is managed by clickQRScan
 
     if (typeof window.clearMainPane === 'function') window.clearMainPane();
     else console.error("showAddEntryMenu: clearMainPane() function is not defined.");
@@ -144,15 +144,13 @@ function showAddEntryMenu(isRestoring = false) {
             restoreEntryFieldData();
         }
 
-        // Ensure all FABs are correctly displayed and z-indexed for form view
         document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'flex', 'important');
         const fabScan = document.getElementById('btn-scan-entry-data-fab');
         if(fabScan) {
             fabScan.style.setProperty('display', 'flex', 'important');
-            fabScan.style.removeProperty('z-index'); // Reset z-index to CSS default
+            fabScan.style.removeProperty('z-index'); 
         }
         document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'flex', 'important');
-
 
         document.getElementById('btn-clear-form-fab')?.addEventListener('click', clickClearEntry);
         document.getElementById('btn-scan-entry-data-fab')?.addEventListener('click', clickQRScan); 
@@ -179,9 +177,12 @@ function displayEntryDataScannerUI() {
         return;
     }
 
+    // Temporary background for video element for debugging visibility
+    const tempVideoBg = "background-color: limegreen;"; 
+
     const scannerHTML = `
         <div id="entry-data-scanner-container" class="app-sync-container" style="top: 0; position:absolute; left:0; right:0; bottom:0; background-color: #000; z-index: 1000;"> 
-            <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1001;"></video>
+            <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1001; ${tempVideoBg}"></video>
             <canvas id="entry-data-scan-canvas" style="display: none;"></canvas>
             <div id="camera-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1002; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle at center, transparent 0%, transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px));">
                 <div id="scan-target-area" style="width:min(var(--target-area-size), var(--target-area-max-size)); height:min(var(--target-area-size), var(--target-area-max-size)); position:relative; border:2px dashed rgba(255,255,255,0.7); border-radius:16px; box-shadow:0 0 15px rgba(0,0,0,0.3);">
@@ -204,15 +205,15 @@ function displayEntryDataScannerUI() {
         scannerWrapper.style.left = "0";
         scannerWrapper.style.width = "100%";
         scannerWrapper.style.height = "100%"; 
-        scannerWrapper.style.zIndex = "1060"; // Z-index for the scanner overlay
+        scannerWrapper.style.zIndex = "1060"; 
         mainPane.appendChild(scannerWrapper);
     }
     scannerWrapper.innerHTML = scannerHTML; 
     
     document.getElementById('btn-switch-entry-data-camera')?.addEventListener('click', switchEntryDataCamera);
+    console.log("displayEntryDataScannerUI: Attempting to start entry data camera...");
     startEntryDataCamera();
 
-    // Hide other FABs, the "Scan Data" FAB (now "Back to Form") is handled by clickQRScan
     document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'none', 'important');
     document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'none', 'important');
 }
@@ -221,52 +222,80 @@ function displayEntryDataScannerUI() {
 // --- Camera and QR Scanning Logic for Entry Data ---
 
 async function startEntryDataCamera(deviceId) {
+    console.log("startEntryDataCamera: Function called. Device ID:", deviceId);
     await stopEntryDataCamera(); 
     const videoElement = document.getElementById('entry-data-camera-feed');
-    if (!videoElement) { console.error("Entry data camera feed element not found."); return; }
+    
+    if (!videoElement) { 
+        console.error("startEntryDataCamera: Video element #entry-data-camera-feed NOT FOUND."); 
+        alert("Error: Camera display element missing.");
+        clickQRScan(); // Try to revert to form view
+        return; 
+    }
+    console.log("startEntryDataCamera: Video element #entry-data-camera-feed found:", videoElement);
 
     let constraints = { video: { facingMode: 'environment' }, audio: false };
     if (deviceId) constraints.video = { deviceId: { exact: deviceId } };
+    console.log("startEntryDataCamera: Using constraints:", constraints);
 
     try {
+        console.log("startEntryDataCamera: Requesting media stream...");
         entryDataCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log("startEntryDataCamera: Media stream obtained:", entryDataCameraStream);
         videoElement.srcObject = entryDataCameraStream;
+        console.log("startEntryDataCamera: srcObject set on video element.");
+        
         const playPromise = videoElement.play();
+        console.log("startEntryDataCamera: videoElement.play() called.");
+
         if (playPromise !== undefined) {
             playPromise.then(_ => {
-                console.log("Entry data camera started.");
+                console.log("startEntryDataCamera: Play promise resolved. Entry data camera started and playing.");
                 enumerateEntryDataCameras();
                 if (entryDataScanAnimationFrameId) cancelAnimationFrame(entryDataScanAnimationFrameId);
                 entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame);
+                console.log("startEntryDataCamera: Scan loop initiated.");
             }).catch(error => { 
-                console.error("Error playing entry data camera:", error);
-                alert("Error starting camera for field scan.");
+                console.error("startEntryDataCamera: Error playing entry data camera:", error);
+                alert("Error starting camera for field scan. Check console for details.");
+                // Optionally, try to revert to form view if play fails
+                // clickQRScan(); 
             });
+        } else {
+            console.warn("startEntryDataCamera: videoElement.play() did not return a promise. Some browsers might autoplay.");
+            // For browsers that autoplay without returning a promise, we might need a 'playing' event listener
+            // to reliably start the scan loop. However, modern browsers should return a promise.
+            // As a fallback, if it autoplays, the scan loop might start from an earlier 'playing' event if one was attached.
+            // For this specific scanner, we are starting the loop after play promise resolves.
         }
     } catch (err) {
-        console.error("Error accessing entry data camera:", err);
-        alert("Could not access camera for field scan. Please check permissions.");
-        clickQRScan(); 
+        console.error("startEntryDataCamera: Error accessing entry data camera (getUserMedia):", err);
+        alert("Could not access camera for field scan. Please check permissions and console for details.");
+        clickQRScan(); // Attempt to toggle back to form view if getUserMedia fails
     }
 }
 
 async function stopEntryDataCamera() {
+    console.log("stopEntryDataCamera: Attempting to stop.");
     if (entryDataScanAnimationFrameId) {
         cancelAnimationFrame(entryDataScanAnimationFrameId);
         entryDataScanAnimationFrameId = null;
+        console.log("stopEntryDataCamera: Scan animation frame canceled.");
     }
     if (entryDataCameraStream) {
         entryDataCameraStream.getTracks().forEach(track => track.stop());
         entryDataCameraStream = null;
-        console.log("Entry data camera stopped.");
+        console.log("stopEntryDataCamera: Media stream tracks stopped.");
     }
     const videoElement = document.getElementById('entry-data-camera-feed');
     if (videoElement && videoElement.srcObject) {
         videoElement.srcObject = null;
+        console.log("stopEntryDataCamera: Video srcObject set to null.");
     }
     const scannerWrapper = document.getElementById('entry-scanner-wrapper');
     if (scannerWrapper) {
         scannerWrapper.remove();
+        console.log("stopEntryDataCamera: Scanner wrapper removed.");
     }
 }
 
@@ -274,6 +303,7 @@ async function enumerateEntryDataCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         entryDataAvailableCameras = devices.filter(device => device.kind === 'videoinput');
+        console.log("enumerateEntryDataCameras: Found cameras:", entryDataAvailableCameras);
         const switchButton = document.getElementById('btn-switch-entry-data-camera');
         if (switchButton) {
             switchButton.style.display = entryDataAvailableCameras.length > 1 ? 'flex' : 'none';
@@ -284,12 +314,13 @@ async function enumerateEntryDataCameras() {
 async function switchEntryDataCamera() {
     if (entryDataAvailableCameras.length > 1) {
         entryDataCurrentCameraIndex = (entryDataCurrentCameraIndex + 1) % entryDataAvailableCameras.length;
+        console.log("switchEntryDataCamera: Switching to camera index", entryDataCurrentCameraIndex);
         await startEntryDataCamera(entryDataAvailableCameras[entryDataCurrentCameraIndex].deviceId);
     }
 }
 
 function scanEntryDataFrame() {
-    if (!entryDataCameraStream) return;
+    if (!entryDataCameraStream) { /*console.log("scanEntryDataFrame: No stream, exiting.");*/ return; }
     const videoElement = document.getElementById('entry-data-camera-feed');
     const canvasElement = document.getElementById('entry-data-scan-canvas');
     const targetAreaElement = document.querySelector('#entry-data-scanner-container #scan-target-area'); 
@@ -308,8 +339,8 @@ function scanEntryDataFrame() {
         if (code && code.data) {
             if (typeof checkIfCodeInTargetArea === 'function' && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
                 console.log("Entry Data QR Scanned:", code.data);
-                alert("Scanned Data for Field: " + code.data + "\n(Auto-filling not yet implemented)");
-                clickQRScan(); 
+                alert("Scanned Data for Field: " + code.data + "\n(Auto-filling not yet implemented. This data will be lost when returning to form for now.)");
+                clickQRScan(); // Toggle back to form view
                 return; 
             }
         }
@@ -327,20 +358,19 @@ function clickQRScan() {
     const fabScanIcon = fabScan ? fabScan.querySelector('.material-symbols-outlined') : null;
     const fabScanText = fabScan ? fabScan.querySelector('.fab-text') : null;
 
-    if (isEntryDataScanningMode) { // Currently scanning, switch back to form
+    if (isEntryDataScanningMode) { 
         stopEntryDataCamera(); 
-        showAddEntryMenu(true); // Rebuilds form and FABs, then restores data
-        // FAB text/icon/aria-label are reset by showAddEntryMenu re-creating the button
-        // Ensure z-index is reset (done in showAddEntryMenu)
+        showAddEntryMenu(true); 
+        // FAB properties are reset by showAddEntryMenu
         isEntryDataScanningMode = false;
-    } else { // Currently on form, switch to scanning
+    } else { 
         saveCurrentEntryFieldData();
         displayEntryDataScannerUI(); 
         if (fabScanIcon) fabScanIcon.textContent = 'edit_document'; 
         if (fabScanText) fabScanText.textContent = 'Back to Form'; 
         fabScan?.setAttribute('aria-label', 'Back to Form');
-        fabScan?.style.setProperty('z-index', '1070', 'important'); // Elevate this FAB above scanner
-        fabScan?.style.setProperty('display', 'flex', 'important'); // Ensure it's visible
+        fabScan?.style.setProperty('z-index', '1070', 'important'); 
+        fabScan?.style.setProperty('display', 'flex', 'important'); 
 
         isEntryDataScanningMode = true;
     }
