@@ -20,7 +20,7 @@ async function showReviewMenu() {
         await window.stopCamera(); // This global stop should handle AppSync's camera
     }
     // Explicitly stop AddEntry's field scanner if it's active and its stop function exists
-    if (typeof window.stopEntryDataCamera === 'function' && typeof window.isEntryDataScanningMode === 'boolean' && window.isEntryDataScanningMode) { 
+    if (typeof window.stopEntryDataCamera === 'function' && typeof window.isEntryDataScanningMode === 'boolean' && window.isEntryDataScanningMode) {
         console.log("showReviewMenu: Stopping entry data camera from Add Entry mode.");
         await window.stopEntryDataCamera();
         // window.isEntryDataScanningMode should be reset by stopEntryDataCamera or clickQRScan
@@ -57,7 +57,7 @@ async function showReviewMenu() {
  */
 function displayNoEntriesMessage() {
     const noEntriesHTML = `
-        <div style="padding: 30px 20px; text-align: center; color: var(--md-sys-color-on-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+        <div class="no-entries-container">
             <span class="material-symbols-outlined" style="font-size: 60px; color: var(--md-sys-color-secondary); margin-bottom: 15px;">info</span>
             <h2 style="color: var(--md-sys-color-secondary); margin-bottom: 10px;">No Entries to Review</h2>
             <p>Please add some entries first using the 'Add Entry' section.</p>
@@ -104,7 +104,7 @@ function buildReviewUI() {
     document.getElementById('review-nav-prev')?.addEventListener('click', handlePreviousEntry);
     document.getElementById('review-nav-next')?.addEventListener('click', handleNextEntry);
     document.getElementById('review-btn-edit-entry')?.addEventListener('click', handleEditCurrentEntry);
-    
+
     const editButton = document.getElementById('review-btn-edit-entry');
     if(editButton){
         editButton.addEventListener('mouseenter', () => editButton.classList.add('expanded'));
@@ -119,11 +119,11 @@ function buildReviewUI() {
     if (cardContainer) {
         let touchStartX = 0;
         let touchEndX = 0;
-        const swipeThreshold = 50; 
+        const swipeThreshold = 50;
 
         cardContainer.addEventListener('touchstart', function(event) {
             touchStartX = event.changedTouches[0].screenX;
-        }, { passive: true }); 
+        }, { passive: true });
 
         cardContainer.addEventListener('touchend', function(event) {
             touchEndX = event.changedTouches[0].screenX;
@@ -133,9 +133,9 @@ function buildReviewUI() {
         function handleSwipeGesture() {
             const swipeDistance = touchEndX - touchStartX;
             if (Math.abs(swipeDistance) >= swipeThreshold) {
-                if (swipeDistance < 0) { 
+                if (swipeDistance < 0) {
                     handleNextEntry();
-                } else { 
+                } else {
                     handlePreviousEntry();
                 }
             }
@@ -153,18 +153,15 @@ function renderCurrentReviewEntry() {
         return;
     }
 
-    displayArea.innerHTML = ''; 
+    displayArea.innerHTML = '';
 
     if (review_allEntries.length === 0) {
-        // This case should be handled by showReviewMenu redirecting to displayNoEntriesMessage
-        // but as a fallback if render is called with an empty array:
-        displayNoEntriesMessage(); 
-        updateReviewNavigationControls(); // Disable edit/nav if no entries
+        displayNoEntriesMessage();
+        updateReviewNavigationControls();
         updateReviewProgressIndicator();
         return;
     }
-    
-    // Ensure currentIndex is valid
+
     if (review_currentIndex < 0) review_currentIndex = 0;
     if (review_currentIndex >= review_allEntries.length) review_currentIndex = review_allEntries.length - 1;
 
@@ -193,8 +190,8 @@ function renderCurrentReviewEntry() {
     tableHTML += `</tbody></table>`;
     displayArea.innerHTML = tableHTML;
 
-    displayArea.classList.remove('swipe-left-animation', 'swipe-right-animation'); 
-    void displayArea.offsetWidth; 
+    displayArea.classList.remove('swipe-left-animation', 'swipe-right-animation');
+    void displayArea.offsetWidth;
 
     updateReviewNavigationControls();
     updateReviewProgressIndicator();
@@ -241,10 +238,10 @@ function handlePreviousEntry() {
         review_currentIndex--;
         const displayArea = document.getElementById('review-entry-display-area');
         if(displayArea) {
-            displayArea.classList.add('swipe-right-animation'); 
+            displayArea.classList.add('swipe-right-animation');
             setTimeout(() => {
                 renderCurrentReviewEntry();
-                displayArea.classList.remove('swipe-right-animation');
+                // The class is removed in renderCurrentReviewEntry
             }, 300); // Match CSS animation duration
         } else {
             renderCurrentReviewEntry();
@@ -260,11 +257,11 @@ function handleNextEntry() {
         review_currentIndex++;
         const displayArea = document.getElementById('review-entry-display-area');
         if(displayArea) {
-            displayArea.classList.add('swipe-left-animation'); 
+            displayArea.classList.add('swipe-left-animation');
             setTimeout(() => {
                 renderCurrentReviewEntry();
-                displayArea.classList.remove('swipe-left-animation');
-            }, 300); 
+                // The class is removed in renderCurrentReviewEntry
+            }, 300);
         } else {
             renderCurrentReviewEntry();
         }
@@ -281,10 +278,10 @@ function handleEditCurrentEntry() {
     }
 
     const entryToEdit = review_allEntries[review_currentIndex];
-    window.tmp_EntryForEdit = JSON.parse(JSON.stringify(entryToEdit)); 
+    window.tmp_EntryForEdit = JSON.parse(JSON.stringify(entryToEdit));
 
     const allEntryStrings = getAllEntryData().split(SEP_CHAR); // SEP_CHAR from main_EntryStorage.js
-    allEntryStrings.splice(review_currentIndex, 1); 
+    allEntryStrings.splice(review_currentIndex, 1);
     storeAllEntryData(allEntryStrings.join(SEP_CHAR)); // storeAllEntryData from main_EntryStorage.js
 
     review_allEntries.splice(review_currentIndex, 1);
@@ -294,10 +291,10 @@ function handleEditCurrentEntry() {
     }
 
     console.log("handleEditCurrentEntry: Entry prepared for editing:", window.tmp_EntryForEdit);
-    
+
     const btnAdd = document.getElementById('btn-add');
     if (btnAdd) {
-        btnAdd.click(); 
+        btnAdd.click();
     } else {
         console.error("handleEditCurrentEntry: Add Entry button not found.");
     }
