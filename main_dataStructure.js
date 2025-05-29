@@ -21,16 +21,11 @@ const SEP_ENTRY_FIELD = "|";
  * Format: fieldName:fieldValue:fieldRequired (T/F)
  * @param {string} content - The string to parse.
  * @returns {boolean} True if parsing was successful and at least one valid field was added.
- * @throws {Error} If content is invalid or parsing fails critically.
  */
 function parseDataField(content) {
     console.log("parseDataField (triplet): Received content:", content);
     if (typeof content !== 'string' || content.trim() === "") {
         dataFields = []; 
-        // Though an error could be thrown, for form setup, returning false might be sufficient
-        // as js_AppSync.js handles the false return to show an error message.
-        // If strict error throwing is preferred here too, uncomment the next line:
-        // throw new Error("Form setup QR content is empty or invalid.");
         console.error("parseDataField (triplet): Content is not a string or is empty.");
         return false;
     }
@@ -85,22 +80,20 @@ function parseDataField(content) {
 function parseQRDataEntry(qrCodeString) {
     console.log("parseQRDataEntry: Received content:", qrCodeString);
     if (typeof qrCodeString !== 'string' || qrCodeString.trim() === "") {
-        throw new Error("QR code content is empty or invalid.");
+        throw new Error("QR code content is empty.");
     }
 
     const parsedQRData = [];
     const pairs = qrCodeString.split(';');
-    let foundValidPair = false;
+    let foundAtLeastOneValidPair = false;
 
     pairs.forEach((pair, index) => {
         if (pair.trim() === "") {
-            return; // Skip empty segments (e.g., from trailing semicolons)
+            return; // Skip empty segments
         }
 
         const colonIndex = pair.indexOf(':');
         if (colonIndex === -1) {
-            // Log a warning, but continue to see if other pairs are valid.
-            // If no valid pairs are found at all, an error will be thrown later.
             console.warn(`parseQRDataEntry: Pair "${pair}" at index ${index} is missing a colon. Skipping.`);
             return; 
         }
@@ -109,15 +102,14 @@ function parseQRDataEntry(qrCodeString) {
         const fieldValue = pair.substring(colonIndex + 1).trim(); // Value can be empty
 
         if (fieldName === "") {
-            // Log a warning, continue.
             console.warn(`parseQRDataEntry: fieldName is empty in pair "${pair}" at index ${index}. Skipping.`);
             return; 
         }
         parsedQRData.push({ fieldName: fieldName, fieldValue: fieldValue });
-        foundValidPair = true; // Mark that at least one pair was structurally valid
+        foundAtLeastOneValidPair = true;
     });
     
-    if (!foundValidPair) {
+    if (!foundAtLeastOneValidPair) {
         // This means the string was not empty, but contained no parsable fieldName:fieldValue pairs.
         throw new Error("QR code data is malformed or contains no valid field-value pairs.");
     }
