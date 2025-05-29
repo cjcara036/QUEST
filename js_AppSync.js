@@ -18,16 +18,34 @@ let _handleCanPlay = null;
 
 /**
  * Main function called when the "App Sync" navigation button is pressed.
- * Defaults to showing the Form Setup QR scanner.
+ * Checks if dataFields are set up. If not, shows Form Setup QR scanner.
+ * Otherwise, shows the QR Entry Generation mode.
  */
 function showAppSyncMenu() {
-    showFormSetupScan();
+    console.log("showAppSyncMenu called.");
+    const currentDataFields = typeof getDataFields === 'function' ? getDataFields() : [];
+
+    if (currentDataFields.length === 0) {
+        console.log("DataFields empty, showing Form Setup Scan.");
+        showFormSetupScan();
+    } else {
+        console.log("DataFields exist, showing QR Entry Generation.");
+        showQREntryGen();
+    }
 }
 
 /**
  * Sets up and displays the UI for the "Form Setup Upload" mode (QR Scanner).
  */
 function showFormSetupScan() {
+    console.log("showFormSetupScan called.");
+    // Ensure any other camera (like entry data scanner) is stopped if active
+    if (typeof window.stopEntryDataCamera === 'function' && window.isEntryDataScanningMode) {
+        window.stopEntryDataCamera();
+        window.isEntryDataScanningMode = false; // Reset flag if js_AddEntry's scanner was active
+    }
+
+
     const formSetupHTML = `
         <div id="app-sync-container">
             <video id="camera-feed" playsinline autoplay muted></video>
@@ -44,7 +62,7 @@ function showFormSetupScan() {
 
             <button id="btn-export-data-mode" class="app-sync-button top-left">
                 <span class="material-symbols-outlined">qr_code_2_add</span>
-                <span class="button-label">Export Data</span>
+                <span class="button-label">Export Data</span> 
             </button>
 
             <button id="btn-switch-camera" class="app-sync-button bottom-center">
@@ -59,18 +77,18 @@ function showFormSetupScan() {
     document.getElementById('btn-export-data-mode').addEventListener('click', showQREntryGen);
     document.getElementById('btn-switch-camera').addEventListener('click', switchCamera);
 
-    startCamera();
+    startCamera(); // Start the AppSync camera
 }
 
 /**
- * Starts the camera feed and displays it in the <video> element.
+ * Starts the camera feed for AppSync (Form Setup).
  */
 async function startCamera(deviceId) {
-    await stopCamera(); 
+    await window.stopCamera(); // Stop this specific AppSync camera first
 
     const videoElement = document.getElementById('camera-feed');
     if (!videoElement) {
-        console.error("startCamera: Camera feed element not found.");
+        console.error("startCamera (AppSync): Camera feed element not found.");
         return;
     }
 
@@ -84,12 +102,12 @@ async function startCamera(deviceId) {
         videoElement.srcObject = currentCameraStream;
 
         _handleLoadedMetadata = async () => {
-            try { await enumerateCameras(); } catch (err) { console.error("Error during enumerateCameras:", err); }
+            try { await enumerateCameras(); } catch (err) { console.error("Error during enumerateCameras (AppSync):", err); }
         };
         _handleCanPlay = async () => {
             try { await videoElement.play(); } catch (playError) {
-                console.error("Error trying to play video:", playError);
-                window.injectHTMLToMainPane(`<div class="camera-error"><h2>Camera Play Error</h2><p>Could not play the video stream.</p><p><i>Error: ${playError.message}</i></p><button onclick="showAppSyncMenu()">Try Again</button></div>`);
+                console.error("Error trying to play video (AppSync):", playError);
+                window.injectHTMLToMainPane(`<div class="camera-error"><h2>Camera Play Error</h2><p>Could not play the video stream.</p><p><i>Error: ${playError.message}</i></p><button onclick="showFormSetupScan()">Try Again</button></div>`);
             }
         };
         _handlePlaying = () => {
@@ -102,21 +120,23 @@ async function startCamera(deviceId) {
         videoElement.addEventListener('playing', _handlePlaying);
 
     } catch (err) {
-        console.error("Error accessing camera (getUserMedia):", err);
-        window.injectHTMLToMainPane(`<div class="camera-error"><h2>Camera Access Error</h2><p>Could not access the camera. Please ensure you have granted permission.</p><p><i>Error: ${err.message}</i></p><button onclick="showAppSyncMenu()">Try Again</button></div>`);
+        console.error("Error accessing camera (AppSync getUserMedia):", err);
+        window.injectHTMLToMainPane(`<div class="camera-error"><h2>Camera Access Error</h2><p>Could not access the camera. Please ensure you have granted permission.</p><p><i>Error: ${err.message}</i></p><button onclick="showFormSetupScan()">Try Again</button></div>`);
     }
 }
 
 /**
- * Stops the current camera stream, scanning loop, and removes event listeners.
+ * Stops the current AppSync camera stream, scanning loop, and removes event listeners.
+ * This is now the primary global stopCamera function.
  */
-window.stopCamera = async function() {
+window.stopCamera = async function() { 
+    console.log("Global stopCamera called (intended for AppSync camera).");
     if (scanAnimationFrameId) {
         cancelAnimationFrame(scanAnimationFrameId);
         scanAnimationFrameId = null;
     }
 
-    const videoElement = document.getElementById('camera-feed');
+    const videoElement = document.getElementById('camera-feed'); // Targets AppSync camera
     if (videoElement) {
         if (_handleLoadedMetadata) videoElement.removeEventListener('loadedmetadata', _handleLoadedMetadata);
         if (_handleCanPlay) videoElement.removeEventListener('canplay', _handleCanPlay);
@@ -131,34 +151,39 @@ window.stopCamera = async function() {
         currentCameraStream.getTracks().forEach(track => track.stop());
         currentCameraStream = null;
     }
+    // Also ensure the entry data scanner is stopped if it was active
+    if (typeof window.stopEntryDataCamera === 'function' && window.isEntryDataScanningMode) {
+         console.log("Global stopCamera also calling stopEntryDataCamera.");
+         await window.stopEntryDataCamera(); // Assuming stopEntryDataCamera is also global
+    }
 };
 
 /**
- * Enumerates available video input devices.
+ * Enumerates available video input devices for AppSync camera.
  */
 async function enumerateCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         availableCameras = devices.filter(device => device.kind === 'videoinput');
-        const switchButton = document.getElementById('btn-switch-camera');
+        const switchButton = document.getElementById('btn-switch-camera'); // AppSync switch button
         if (switchButton) {
            switchButton.style.display = availableCameras.length > 1 ? 'flex' : 'none';
         }
-    } catch (err) { console.error("Error enumerating cameras:", err); }
+    } catch (err) { console.error("Error enumerating cameras (AppSync):", err); }
 }
 
 /**
- * Switches to the next available camera.
+ * Switches to the next available camera for AppSync.
  */
 async function switchCamera() {
     if (availableCameras.length > 1) {
         currentCameraIndex = (currentCameraIndex + 1) % availableCameras.length;
-        await startCamera(availableCameras[currentCameraIndex].deviceId);
+        await startCamera(availableCameras[currentCameraIndex].deviceId); 
     }
 }
 
 /**
- * Continuously scans the video feed for QR codes.
+ * Continuously scans the video feed for QR codes (AppSync Form Setup).
  */
 function scanFrame() {
     if (!currentCameraStream || !document.getElementById('camera-feed')?.srcObject) {
@@ -187,17 +212,18 @@ function scanFrame() {
         const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
 
         if (code && code.data && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
-            console.log("QR Code detected INSIDE target area:", code.data.substring(0,50)+"..."); 
+            console.log("AppSync QR Code detected:", code.data.substring(0,50)+"..."); 
             parseFormSetup(code.data); 
             return; 
         }
-    } catch (error) { console.error("ScanFrame: Error during QR processing:", error); }
+    } catch (error) { console.error("ScanFrame (AppSync): Error during QR processing:", error); }
 
     scanAnimationFrameId = requestAnimationFrame(scanFrame);
 }
 
 /**
  * Checks if the center of a detected QR code falls within the visual target area.
+ * This function is also used by js_AddEntry.js, so it's kept general.
  */
 function checkIfCodeInTargetArea(qrCodeLocation, videoElement, targetAreaDiv) {
     const videoIntrinsicWidth = videoElement.videoWidth, videoIntrinsicHeight = videoElement.videoHeight;
@@ -232,6 +258,8 @@ function checkIfCodeInTargetArea(qrCodeLocation, videoElement, targetAreaDiv) {
 async function parseFormSetup(data) {
     console.log("parseFormSetup: Scanned QR Data:", data.substring(0,100)+"...");
     await window.stopCamera(); 
+
+    console.log("Form Setup QR Code Scanned. Previous entries will be cleared and new form fields will be parsed.");
 
     if (typeof window.deleteAllEntryData === 'function') {
         window.deleteAllEntryData(); 
@@ -314,43 +342,54 @@ async function parseFormSetup(data) {
  * Displays a QR code of the current questEntryContent cookie.
  */
 async function showQREntryGen() {
-    await window.stopCamera(); 
+    console.log("showQREntryGen: Switching to QR Entry Generation mode.");
+    await window.stopCamera(); // Ensure AppSync camera is stopped
+    // Also ensure the entry data scanner is stopped if it was active
+    if (typeof window.stopEntryDataCamera === 'function' && window.isEntryDataScanningMode) {
+         console.log("showQREntryGen also calling stopEntryDataCamera.");
+         await window.stopEntryDataCamera();
+         window.isEntryDataScanningMode = false; // Reset flag
+    }
+
     window.clearMainPane(); 
 
     const entryData = typeof getAllEntryData === 'function' ? getAllEntryData() : "";
-    let qrContentHTML;
+    let qrDisplayAreaHTML;
 
     if (entryData) {
-        qrContentHTML = `
+        qrDisplayAreaHTML = `
             <p style="margin-bottom: 15px; font-size: 16px;">Scan this QR code with your target application:</p>
-            <div id="qr-code-display-area" style="width: 256px; height: 256px; margin: 0 auto 20px auto; padding: 10px; background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+            <div id="qr-code-display-area" style="width: 256px; height: 256px; margin: 20px auto; padding: 10px; background-color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
                 </div>
         `;
     } else {
-        qrContentHTML = `
+        qrDisplayAreaHTML = `
             <p id="no-data-for-qr-message" style="margin-bottom: 20px; font-size: 16px; color: var(--md-sys-color-secondary);">
-                No data available to generate QR code. Add some entries first.
+                No data entries recorded yet. Add some entries first.
             </p>
         `;
     }
 
     const QREntryGenHTML = `
-        <div class="qr-generation-container" style="padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; height: 100%;">
-            <button id="btn-scan-setup-mode" class="app-sync-button top-left" style="position: relative; margin-bottom: 25px; align-self: flex-start;">
+        <div class="qr-generation-container" style="padding: 20px; text-align: center; display: flex; flex-direction: column; align-items: flex-start; box-sizing: border-box;">
+            <button id="btn-back-to-form-setup" class="app-sync-button top-left" style="position: relative; margin-bottom: 25px; align-self: flex-start;">
                 <span class="material-symbols-outlined">qr_code_scanner</span>
                 <span class="button-label">Form Setup</span>
             </button>
-            <h2 style="margin-bottom: 10px; color: var(--md-sys-color-primary); width: 100%; text-align: center;">Export Data Entries</h2>
-            ${qrContentHTML}
+            <div style="width:100%; text-align:center; flex-grow: 1; display: flex; flex-direction: column; justify-content: center;">
+                <h2 style="margin-bottom: 10px; color: var(--md-sys-color-primary);">Export Data Entries</h2>
+                ${qrDisplayAreaHTML}
+            </div>
         </div>
     `;
     window.injectHTMLToMainPane(QREntryGenHTML);
 
-    document.getElementById('btn-scan-setup-mode').addEventListener('click', showFormSetupScan);
+    document.getElementById('btn-back-to-form-setup').addEventListener('click', showFormSetupScan);
 
     if (entryData) {
         const qrCodeElement = document.getElementById('qr-code-display-area');
         if (qrCodeElement) {
+            qrCodeElement.innerHTML = ''; 
             try {
                 new QRCode(qrCodeElement, {
                     text: entryData,
@@ -358,9 +397,9 @@ async function showQREntryGen() {
                     height: 256,
                     colorDark : "#000000",
                     colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H 
+                    correctLevel : QRCode.CorrectLevel.M 
                 });
-                console.log("QR Code for export generated.");
+                console.log("QR Code for export generated with data length:", entryData.length);
             } catch (e) {
                 console.error("Error generating QR code for export:", e);
                 qrCodeElement.innerHTML = "<p style='color:red;'>Error generating QR code.</p>";
