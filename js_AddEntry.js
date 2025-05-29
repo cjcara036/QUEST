@@ -73,4 +73,363 @@ function fillDefaultEntryContent() {
 /**
  * Saves the current values from the entry form inputs into tempEntryFieldValues.
  */
-function saveCurrentEntryFieldData(
+function saveCurrentEntryFieldData() {
+    tempEntryFieldValues = [];
+    const inputElements = document.querySelectorAll('#dynamic-entry-form-area .entry-field-input');
+    inputElements.forEach(inputEl => {
+        tempEntryFieldValues.push({
+            id: inputEl.id, 
+            value: inputEl.value
+        });
+    });
+    console.log("saveCurrentEntryFieldData: Saved form values:", tempEntryFieldValues);
+}
+
+/**
+ * Restores values to the entry form inputs from tempEntryFieldValues.
+ */
+function restoreEntryFieldData() {
+    console.log("restoreEntryFieldData: Attempting to restore values:", tempEntryFieldValues);
+    if (tempEntryFieldValues.length > 0) {
+        tempEntryFieldValues.forEach(savedField => {
+            const inputEl = document.getElementById(savedField.id);
+            if (inputEl) {
+                inputEl.value = savedField.value;
+            }
+        });
+    }
+}
+
+/**
+ * Displays the UI for the Add Entry mode (form and FABs).
+ * @param {boolean} [isRestoring=false] - If true, restores form values from temp storage.
+ */
+function showAddEntryMenu(isRestoring = false) {
+    console.log("showAddEntryMenu called. isRestoring:", isRestoring);
+    // isEntryDataScanningMode = false; // This is set in clickQRScan before calling this
+
+    if (typeof window.clearMainPane === 'function') window.clearMainPane();
+    else console.error("showAddEntryMenu: clearMainPane() function is not defined.");
+
+    const currentDataFields = typeof getDataFields === 'function' ? getDataFields() : [];
+
+    if (currentDataFields.length === 0) {
+        const promptToSyncHTML = `
+            <div style="padding: 20px; text-align: center; color: var(--md-sys-color-on-surface);">
+                <h2 style="color: var(--md-sys-color-secondary); margin-bottom: 15px;">Setup Required</h2>
+                <p>No form fields are currently defined. Please use <strong>App Sync</strong> first.</p>
+                <button onclick="document.getElementById('btn-sync').click()" class="quest-button primary">Go to App Sync</button>
+            </div>`;
+        if (typeof window.injectHTMLToMainPane === 'function') window.injectHTMLToMainPane(promptToSyncHTML);
+    } else {
+        const addEntryViewHTML = `
+            <div class="add-entry-view-container">
+                <button id="btn-clear-form-fab" class="fab-entry-mode fab-top-left" aria-label="Clear Form">
+                    <span class="material-symbols-outlined">delete</span><span class="fab-text">Clear Form</span>
+                </button>
+                <div id="dynamic-entry-form-area" style="text-align:left;margin:0 auto;max-width:600px;width:100%;">
+                    <h2 style="text-align:center;color:var(--md-sys-color-primary);margin-bottom:10px;margin-top:10px;">Create New Entry</h2>
+                </div>
+                <button id="btn-scan-entry-data-fab" class="fab-entry-mode fab-bottom-left" aria-label="Scan Data">
+                    <span class="material-symbols-outlined">document_scanner</span><span class="fab-text">Scan Data</span>
+                </button>
+                <button id="btn-add-created-entry-fab" class="fab-entry-mode fab-bottom-right" aria-label="Add Entry">
+                    <span class="material-symbols-outlined">add</span><span class="fab-text">Add Entry</span>
+                </button>
+            </div>`;
+        if (typeof window.injectHTMLToMainPane === 'function') window.injectHTMLToMainPane(addEntryViewHTML);
+        
+        fillDefaultEntryContent(); 
+        if (isRestoring) {
+            restoreEntryFieldData();
+        }
+
+        // Ensure all FABs are correctly displayed and z-indexed for form view
+        document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'flex', 'important');
+        const fabScan = document.getElementById('btn-scan-entry-data-fab');
+        if(fabScan) {
+            fabScan.style.setProperty('display', 'flex', 'important');
+            fabScan.style.removeProperty('z-index'); // Reset z-index to CSS default
+        }
+        document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'flex', 'important');
+
+
+        document.getElementById('btn-clear-form-fab')?.addEventListener('click', clickClearEntry);
+        document.getElementById('btn-scan-entry-data-fab')?.addEventListener('click', clickQRScan); 
+        document.getElementById('btn-add-created-entry-fab')?.addEventListener('click', clickAddEntry);
+
+        document.querySelectorAll('.fab-entry-mode').forEach(fab => {
+            fab.addEventListener('mouseenter', () => fab.classList.add('expanded'));
+            fab.addEventListener('mouseleave', () => fab.classList.remove('expanded'));
+            fab.addEventListener('focus', () => fab.classList.add('expanded'));
+            fab.addEventListener('blur', () => fab.classList.remove('expanded'));
+        });
+    }
+}
+
+/**
+ * Displays the QR scanner UI for individual entry fields.
+ */
+function displayEntryDataScannerUI() {
+    console.log("displayEntryDataScannerUI called.");
+    
+    const mainPane = document.getElementById('main-pane');
+    if (!mainPane) {
+        console.error("displayEntryDataScannerUI: Main pane not found!");
+        return;
+    }
+
+    const scannerHTML = `
+        <div id="entry-data-scanner-container" class="app-sync-container" style="top: 0; position:absolute; left:0; right:0; bottom:0; background-color: #000; z-index: 1000;"> 
+            <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1001;"></video>
+            <canvas id="entry-data-scan-canvas" style="display: none;"></canvas>
+            <div id="camera-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1002; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle at center, transparent 0%, transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px));">
+                <div id="scan-target-area" style="width:min(var(--target-area-size), var(--target-area-max-size)); height:min(var(--target-area-size), var(--target-area-max-size)); position:relative; border:2px dashed rgba(255,255,255,0.7); border-radius:16px; box-shadow:0 0 15px rgba(0,0,0,0.3);">
+                    <div class="corner top-left"></div><div class="corner top-right"></div>
+                    <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
+                </div>
+            </div>
+            <button id="btn-switch-entry-data-camera" class="app-sync-button bottom-center" style="z-index: 1003; position:fixed;">
+                <span class="material-symbols-outlined">cameraswitch</span>
+                <span class="button-label">Switch Camera</span>
+            </button>
+        </div>`;
+    
+    let scannerWrapper = document.getElementById('entry-scanner-wrapper');
+    if (!scannerWrapper) {
+        scannerWrapper = document.createElement('div');
+        scannerWrapper.id = "entry-scanner-wrapper";
+        scannerWrapper.style.position = "absolute"; 
+        scannerWrapper.style.top = "0"; 
+        scannerWrapper.style.left = "0";
+        scannerWrapper.style.width = "100%";
+        scannerWrapper.style.height = "100%"; 
+        scannerWrapper.style.zIndex = "1060"; // Z-index for the scanner overlay
+        mainPane.appendChild(scannerWrapper);
+    }
+    scannerWrapper.innerHTML = scannerHTML; 
+    
+    document.getElementById('btn-switch-entry-data-camera')?.addEventListener('click', switchEntryDataCamera);
+    startEntryDataCamera();
+
+    // Hide other FABs, the "Scan Data" FAB (now "Back to Form") is handled by clickQRScan
+    document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'none', 'important');
+    document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'none', 'important');
+}
+
+
+// --- Camera and QR Scanning Logic for Entry Data ---
+
+async function startEntryDataCamera(deviceId) {
+    await stopEntryDataCamera(); 
+    const videoElement = document.getElementById('entry-data-camera-feed');
+    if (!videoElement) { console.error("Entry data camera feed element not found."); return; }
+
+    let constraints = { video: { facingMode: 'environment' }, audio: false };
+    if (deviceId) constraints.video = { deviceId: { exact: deviceId } };
+
+    try {
+        entryDataCameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoElement.srcObject = entryDataCameraStream;
+        const playPromise = videoElement.play();
+        if (playPromise !== undefined) {
+            playPromise.then(_ => {
+                console.log("Entry data camera started.");
+                enumerateEntryDataCameras();
+                if (entryDataScanAnimationFrameId) cancelAnimationFrame(entryDataScanAnimationFrameId);
+                entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame);
+            }).catch(error => { 
+                console.error("Error playing entry data camera:", error);
+                alert("Error starting camera for field scan.");
+            });
+        }
+    } catch (err) {
+        console.error("Error accessing entry data camera:", err);
+        alert("Could not access camera for field scan. Please check permissions.");
+        clickQRScan(); 
+    }
+}
+
+async function stopEntryDataCamera() {
+    if (entryDataScanAnimationFrameId) {
+        cancelAnimationFrame(entryDataScanAnimationFrameId);
+        entryDataScanAnimationFrameId = null;
+    }
+    if (entryDataCameraStream) {
+        entryDataCameraStream.getTracks().forEach(track => track.stop());
+        entryDataCameraStream = null;
+        console.log("Entry data camera stopped.");
+    }
+    const videoElement = document.getElementById('entry-data-camera-feed');
+    if (videoElement && videoElement.srcObject) {
+        videoElement.srcObject = null;
+    }
+    const scannerWrapper = document.getElementById('entry-scanner-wrapper');
+    if (scannerWrapper) {
+        scannerWrapper.remove();
+    }
+}
+
+async function enumerateEntryDataCameras() {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        entryDataAvailableCameras = devices.filter(device => device.kind === 'videoinput');
+        const switchButton = document.getElementById('btn-switch-entry-data-camera');
+        if (switchButton) {
+            switchButton.style.display = entryDataAvailableCameras.length > 1 ? 'flex' : 'none';
+        }
+    } catch (err) { console.error("Error enumerating entry data cameras:", err); }
+}
+
+async function switchEntryDataCamera() {
+    if (entryDataAvailableCameras.length > 1) {
+        entryDataCurrentCameraIndex = (entryDataCurrentCameraIndex + 1) % entryDataAvailableCameras.length;
+        await startEntryDataCamera(entryDataAvailableCameras[entryDataCurrentCameraIndex].deviceId);
+    }
+}
+
+function scanEntryDataFrame() {
+    if (!entryDataCameraStream) return;
+    const videoElement = document.getElementById('entry-data-camera-feed');
+    const canvasElement = document.getElementById('entry-data-scan-canvas');
+    const targetAreaElement = document.querySelector('#entry-data-scanner-container #scan-target-area'); 
+
+    if (!videoElement || !canvasElement || !targetAreaElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA || videoElement.videoWidth === 0) {
+        entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame); return;
+    }
+    if (canvasElement.width !== videoElement.videoWidth) canvasElement.width = videoElement.videoWidth;
+    if (canvasElement.height !== videoElement.videoHeight) canvasElement.height = videoElement.videoHeight;
+
+    const canvasContext = canvasElement.getContext('2d', { willReadFrequently: true });
+    canvasContext.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
+    try {
+        const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) {
+            if (typeof checkIfCodeInTargetArea === 'function' && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
+                console.log("Entry Data QR Scanned:", code.data);
+                alert("Scanned Data for Field: " + code.data + "\n(Auto-filling not yet implemented)");
+                clickQRScan(); 
+                return; 
+            }
+        }
+    } catch (error) { console.error("Error during entry data QR scan:", error); }
+    entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame);
+}
+
+
+/**
+ * Toggles between Entry Form view and QR Data Scan view.
+ */
+function clickQRScan() {
+    console.log("clickQRScan() called. Current mode (before toggle):", isEntryDataScanningMode ? "Scan" : "Form");
+    const fabScan = document.getElementById('btn-scan-entry-data-fab');
+    const fabScanIcon = fabScan ? fabScan.querySelector('.material-symbols-outlined') : null;
+    const fabScanText = fabScan ? fabScan.querySelector('.fab-text') : null;
+
+    if (isEntryDataScanningMode) { // Currently scanning, switch back to form
+        stopEntryDataCamera(); 
+        showAddEntryMenu(true); // Rebuilds form and FABs, then restores data
+        // FAB text/icon/aria-label are reset by showAddEntryMenu re-creating the button
+        // Ensure z-index is reset (done in showAddEntryMenu)
+        isEntryDataScanningMode = false;
+    } else { // Currently on form, switch to scanning
+        saveCurrentEntryFieldData();
+        displayEntryDataScannerUI(); 
+        if (fabScanIcon) fabScanIcon.textContent = 'edit_document'; 
+        if (fabScanText) fabScanText.textContent = 'Back to Form'; 
+        fabScan?.setAttribute('aria-label', 'Back to Form');
+        fabScan?.style.setProperty('z-index', '1070', 'important'); // Elevate this FAB above scanner
+        fabScan?.style.setProperty('display', 'flex', 'important'); // Ensure it's visible
+
+        isEntryDataScanningMode = true;
+    }
+    console.log("clickQRScan: Toggled. New mode:", isEntryDataScanningMode ? "Scan" : "Form");
+}
+
+
+// --- Other FAB click handlers and validation logic ---
+function showValidationMessage(message, type = 'error') {
+    const container = document.getElementById('entry-validation-message-container');
+    if (!container) return; 
+    let messageDiv = document.getElementById('entry-validation-message');
+    if (!messageDiv) {
+        messageDiv = document.createElement('div');
+        messageDiv.id = 'entry-validation-message';
+        container.appendChild(messageDiv);
+    }
+    messageDiv.textContent = message;
+    messageDiv.className = `validation-message ${type}`;
+}
+
+function clearValidationMessages() {
+    const messageDiv = document.getElementById('entry-validation-message');
+    if (messageDiv) messageDiv.remove();
+    document.querySelectorAll('.entry-field-input.input-error').forEach(input => input.classList.remove('input-error'));
+}
+
+function clickAddEntry() {
+    console.log("clickAddEntry() called.");
+    clearValidationMessages(); 
+    const inputElements = document.querySelectorAll('#dynamic-entry-form-area .entry-field-input');
+    let allRequiredFilled = true;
+    let firstMissingField = null;
+    const stringPairArray = [];
+
+    inputElements.forEach(inputEl => {
+        const fieldValue = inputEl.value.trim();
+        const fieldName = inputEl.dataset.originalFieldName; 
+        const isRequired = inputEl.dataset.isRequired === 'true';
+        if (isRequired && fieldValue === "") {
+            allRequiredFilled = false;
+            inputEl.classList.add('input-error'); 
+            if (!firstMissingField) firstMissingField = inputEl;
+        } else {
+            inputEl.classList.remove('input-error'); 
+        }
+        if (fieldName) stringPairArray.push(makeDataFieldStringPair(fieldName, fieldValue));
+    });
+
+    if (!allRequiredFilled) {
+        showValidationMessage("Please fill all required fields marked with *.", "error");
+        if (firstMissingField) firstMissingField.focus(); return; 
+    }
+
+    if (typeof makeEntryString !== 'function' || typeof window.addEntry !== 'function') {
+        showValidationMessage("Error: System function missing. Cannot save entry.", "error"); return;
+    }
+    
+    const entryString = makeEntryString(stringPairArray);
+    if (entryString) {
+        try {
+            window.addEntry(entryString); 
+            showAddEntrySuccessScreen(); 
+        } catch (error) {
+            console.error("clickAddEntry: Error calling window.addEntry():", error.message);
+            showValidationMessage(`Error saving entry: ${error.message}`, "error");
+        }
+    } else { showValidationMessage("No data to save.", "error"); }
+}
+
+function showAddEntrySuccessScreen() {
+    if (typeof window.clearMainPane === 'function') window.clearMainPane();
+    const successHTML = `
+        <div style="padding:30px 20px;text-align:center;color:var(--md-sys-color-on-surface);display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;">
+            <span class="material-symbols-outlined" style="font-size:60px;color:var(--md-sys-color-success);margin-bottom:15px;">check_circle</span>
+            <h2 style="color:var(--md-sys-color-success);margin-bottom:10px;">Entry Added Successfully!</h2>
+            <p style="margin-bottom:20px;">You can review your entries in the 'Review' tab.</p>
+            <p style="margin-bottom:25px;">Would you like to add another entry?</p>
+            <div style="display:flex;gap:15px;">
+                <button onclick="showAddEntryMenu()" class="quest-button primary" style="min-width:150px;">Add Another Entry</button>
+                <button onclick="document.getElementById('btn-review').click()" class="quest-button secondary" style="min-width:150px;background-color:var(--md-sys-color-surface-container);color:var(--md-sys-color-on-surface-variant);border:1px solid var(--md-sys-color-outline);">Go to Review</button>
+            </div>
+        </div>`;
+    if (typeof window.injectHTMLToMainPane === 'function') window.injectHTMLToMainPane(successHTML);
+}
+
+function clickClearEntry() {
+    console.log("clickClearEntry() called.");
+    clearValidationMessages();
+    fillDefaultEntryContent(); 
+    console.log("Form fields cleared/reset to defaults.");
+}
