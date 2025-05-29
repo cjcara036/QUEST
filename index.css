@@ -24,6 +24,7 @@
 
     --md-sys-color-outline: #B2DFDB;
     --md-sys-color-error: #B00020; /* Standard error color */
+    --md-sys-color-error-rgb: 176, 0, 32; /* RGB for error for box-shadow */
     --md-sys-color-error-container: #FDECEA;
     --md-sys-color-on-error-container: #B00020;
     --md-sys-color-success: #2E7D32; /* Success color */
@@ -68,38 +69,39 @@
     --md-font-title-weight: 700;
 }
 
-/* --- App Sync / Scanner Specific Styles --- */
-#app-sync-container { 
-    position: absolute; top: var(--top-app-bar-height); left: 0; right: 0; bottom: 0;
+/* --- App Sync / Scanner Specific Styles (reused for entry data scanner) --- */
+.app-sync-container { /* General class for scanner views */
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0; /* Covers parent */
     background-color: #000; overflow: hidden; display: flex;
-    justify-content: center; align-items: center; z-index: 100; 
+    justify-content: center; align-items: center; z-index: 1000; /* High z-index */
 }
-#camera-feed {
+.app-sync-container video { /* Target video within any scanner */
     position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
-    object-fit: cover; transform: translate(-50%, -50%); z-index: 101;
+    object-fit: cover; transform: translate(-50%, -50%); z-index: 1001;
 }
-#camera-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 102;
+.app-sync-container #camera-overlay { /* Target overlay within any scanner */
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1002;
     display: flex; justify-content: center; align-items: center;
     background: radial-gradient( circle at center, transparent 0%,
         transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), 
         var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px) );
 }
-#scan-target-area {
+.app-sync-container #scan-target-area { /* Target scan area within any scanner */
     width: min(var(--target-area-size), var(--target-area-max-size)); 
     height: min(var(--target-area-size), var(--target-area-max-size));
     position: relative; border: 2px dashed rgba(255, 255, 255, 0.7);
     border-radius: 16px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
-.corner {
+.app-sync-container .corner { /* Target corners within any scanner */
     position: absolute; width: 20px; height: 20px; 
     border-color: rgba(255, 255, 255, 0.9); border-style: solid; border-width: 0;
 }
-.corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;}
-.corner.top-right { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px;}
-.corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
-.corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
+.app-sync-container .corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;}
+.app-sync-container .corner.top-right { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px;}
+.app-sync-container .corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
+.app-sync-container .corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
 
+/* Button styling for buttons *inside* scanner views (like switch camera or mode toggle) */
 .app-sync-button { 
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.8);
     color: var(--md-sys-color-on-primary); border: none; border-radius: 28px;
@@ -111,12 +113,22 @@
 .app-sync-button:hover { background-color: var(--md-sys-color-primary); transform: scale(1.05); }
 .app-sync-button .material-symbols-outlined { font-size: 22px; }
 
+/* Positioning for buttons in AppSync (setup) scanner view */
 #app-sync-container .app-sync-button.top-left { position: absolute; top: 20px; left: 20px; z-index: 103;}
 #app-sync-container .app-sync-button.bottom-center {
     position: absolute; z-index: 103;
     bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
     left: 50%; transform: translateX(-50%);
 }
+/* Positioning for switch camera button in Entry Data scanner view */
+#entry-data-scanner-container .app-sync-button.bottom-center {
+    position: fixed; /* Fixed relative to viewport */
+    bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
+    left: 50%; transform: translateX(-50%);
+    z-index: 1003; /* Ensure it's above the overlay */
+}
+
+
 .camera-error {
     color: var(--md-sys-color-on-surface); padding: 30px; text-align: center;
     background-color: var(--md-sys-color-surface); border-radius: 8px; margin: 20px;
@@ -169,7 +181,7 @@ body, html {
 .add-entry-view-container {
     position: relative; 
     width: 100%;
-    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); 
+    min-height: calc(100% - (var(--fab-margin) + var(--fab-size) + 16px) - (var(--fab-size) + var(--fab-margin) + 10px) ); /* Attempt to make space if content is short */
     display: flex;
     flex-direction: column;
 }
@@ -312,12 +324,12 @@ body, html {
 /* Input Error Styling */
 .entry-field-input.input-error {
     border-color: var(--md-sys-color-error) !important;
-    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-error-rgb, 176, 0, 32), 0.2) !important; /* Fallback if --md-sys-color-error-rgb not set */
+    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-error-rgb, 176, 0, 32), 0.2) !important; 
 }
 /* Validation Message Styling */
 .validation-message {
     padding: 10px 15px;
-    margin-bottom: 15px; /* Space below the message */
+    margin-bottom: 15px; 
     border-radius: 6px;
     font-size: 0.95em;
     text-align: center;
@@ -408,6 +420,14 @@ body, html {
 }
 .quest-button.primary:hover {
     background-color: var(--md-sys-color-secondary); /* Darken on hover */
+}
+.quest-button.secondary { /* For buttons like "Go to Review" */
+    background-color: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface-variant);
+    border: 1px solid var(--md-sys-color-outline);
+}
+.quest-button.secondary:hover {
+    background-color: var(--md-sys-color-outline);
 }
 
 
