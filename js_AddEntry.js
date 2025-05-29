@@ -168,7 +168,7 @@ function showValidationMessage(message, type = 'error') {
         container.appendChild(messageDiv);
     }
     messageDiv.textContent = message;
-    messageDiv.className = `validation-message ${type}`; // Add classes for styling
+    messageDiv.className = `validation-message ${type}`;
 }
 
 /**
@@ -179,7 +179,6 @@ function clearValidationMessages() {
     if (messageDiv) {
         messageDiv.remove();
     }
-    // Remove error class from all inputs
     document.querySelectorAll('.entry-field-input.input-error').forEach(input => {
         input.classList.remove('input-error');
     });
@@ -192,7 +191,7 @@ function clearValidationMessages() {
  */
 function clickAddEntry() {
     console.log("clickAddEntry() called.");
-    clearValidationMessages(); // Clear previous errors
+    clearValidationMessages(); 
 
     const inputElements = document.querySelectorAll('#dynamic-entry-form-area .entry-field-input');
     let allRequiredFilled = true;
@@ -201,18 +200,17 @@ function clickAddEntry() {
 
     inputElements.forEach(inputEl => {
         const fieldValue = inputEl.value.trim();
-        const fieldName = inputEl.dataset.originalFieldName; // Get original fieldName from data attribute
+        const fieldName = inputEl.dataset.originalFieldName; 
         const isRequired = inputEl.dataset.isRequired === 'true';
 
         if (isRequired && fieldValue === "") {
             allRequiredFilled = false;
-            inputEl.classList.add('input-error'); // Highlight missing field
+            inputEl.classList.add('input-error'); 
             if (!firstMissingField) firstMissingField = inputEl;
         } else {
-            inputEl.classList.remove('input-error'); // Remove highlight if previously errored
+            inputEl.classList.remove('input-error'); 
         }
-        // Add to pair array regardless of being required, if we proceed
-        if (fieldName) { // Ensure fieldName is valid
+        if (fieldName) {
              stringPairArray.push(makeDataFieldStringPair(fieldName, fieldValue));
         }
     });
@@ -220,11 +218,10 @@ function clickAddEntry() {
     if (!allRequiredFilled) {
         console.warn("clickAddEntry: Not all required fields are filled.");
         showValidationMessage("Please fill all required fields marked with *.", "error");
-        if (firstMissingField) firstMissingField.focus(); // Focus the first missing field
-        return; // Stop processing
+        if (firstMissingField) firstMissingField.focus(); 
+        return; 
     }
 
-    // Proceed if all required fields are filled
     if (typeof makeEntryString !== 'function' || typeof window.addEntry !== 'function') {
         console.error("clickAddEntry: makeEntryString or addEntry function is not defined.");
         showValidationMessage("Error: System function missing. Cannot save entry.", "error");
@@ -236,20 +233,41 @@ function clickAddEntry() {
 
     if (entryString) {
         try {
-            window.addEntry(entryString); // This function from main_EntryStorage.js might throw an error
+            window.addEntry(entryString); 
             console.log("clickAddEntry: Entry added successfully via window.addEntry.");
-            showValidationMessage("Entry added successfully!", "success");
-            // Clear the form by resetting to defaults
-            fillDefaultEntryContent(); 
-            // Optionally, clear success message after a delay
-            setTimeout(clearValidationMessages, 3000);
+            // Instead of just resetting, show the success screen
+            showAddEntrySuccessScreen(); 
         } catch (error) {
             console.error("clickAddEntry: Error calling window.addEntry():", error.message);
             showValidationMessage(`Error saving entry: ${error.message}`, "error");
         }
     } else {
         console.warn("clickAddEntry: entryString is empty, nothing to add.");
-        showValidationMessage("No data to save.", "error"); // Should ideally not happen if form has fields
+        showValidationMessage("No data to save.", "error"); 
+    }
+}
+
+/**
+ * Displays a success message and options after an entry is added.
+ */
+function showAddEntrySuccessScreen() {
+    console.log("showAddEntrySuccessScreen() called.");
+    if (typeof window.clearMainPane === 'function') window.clearMainPane();
+
+    const successHTML = `
+        <div style="padding: 30px 20px; text-align: center; color: var(--md-sys-color-on-surface); display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+            <span class="material-symbols-outlined" style="font-size: 60px; color: var(--md-sys-color-success); margin-bottom: 15px;">check_circle</span>
+            <h2 style="color: var(--md-sys-color-success); margin-bottom: 10px;">Entry Added Successfully!</h2>
+            <p style="margin-bottom: 20px;">You can review your entries in the 'Review' tab.</p>
+            <p style="margin-bottom: 25px;">Would you like to add another entry?</p>
+            <div style="display: flex; gap: 15px;">
+                <button onclick="showAddEntryMenu()" class="quest-button primary" style="min-width: 150px;">Add Another Entry</button>
+                <button onclick="document.getElementById('btn-review').click()" class="quest-button secondary" style="min-width: 150px; background-color: var(--md-sys-color-surface-container); color: var(--md-sys-color-on-surface-variant); border: 1px solid var(--md-sys-color-outline);">Go to Review</button>
+            </div>
+        </div>
+    `;
+    if (typeof window.injectHTMLToMainPane === 'function') {
+        window.injectHTMLToMainPane(successHTML);
     }
 }
 
