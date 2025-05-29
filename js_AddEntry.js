@@ -106,7 +106,6 @@ function restoreEntryFieldData() {
  */
 function showAddEntryMenu(isRestoring = false) {
     console.log("showAddEntryMenu called. isRestoring:", isRestoring);
-    // isEntryDataScanningMode is managed by clickQRScan
 
     if (typeof window.clearMainPane === 'function') window.clearMainPane();
     else console.error("showAddEntryMenu: clearMainPane() function is not defined.");
@@ -170,49 +169,60 @@ function showAddEntryMenu(isRestoring = false) {
  */
 function displayEntryDataScannerUI() {
     console.log("displayEntryDataScannerUI called.");
-    
     const mainPane = document.getElementById('main-pane');
     if (!mainPane) {
         console.error("displayEntryDataScannerUI: Main pane not found!");
+        if (isEntryDataScanningMode) clickQRScan(); // Try to toggle back if something is wrong
         return;
     }
 
-    // Temporary background for video element for debugging visibility
-    const tempVideoBg = "background-color: limegreen;"; 
+    let oldScannerWrapper = document.getElementById('entry-scanner-wrapper');
+    if (oldScannerWrapper) oldScannerWrapper.remove();
 
+    const scannerWrapper = document.createElement('div');
+    scannerWrapper.id = "entry-scanner-wrapper";
+    scannerWrapper.style.position = "absolute"; 
+    scannerWrapper.style.top = "0"; 
+    scannerWrapper.style.left = "0";
+    scannerWrapper.style.width = "100%";
+    scannerWrapper.style.height = "100%"; 
+    scannerWrapper.style.zIndex = "1060"; 
+    mainPane.appendChild(scannerWrapper);
+
+    const tempVideoBg = "background-color: limegreen;"; 
     const scannerHTML = `
-        <div id="entry-data-scanner-container" class="app-sync-container" style="top: 0; position:absolute; left:0; right:0; bottom:0; background-color: #000; z-index: 1000;"> 
-            <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1001; ${tempVideoBg}"></video>
+        <div id="entry-data-scanner-container" class="app-sync-container" style="position:absolute; top:0; left:0; right:0; bottom:0; background-color: #000;"> 
+            <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1; ${tempVideoBg}"></video>
             <canvas id="entry-data-scan-canvas" style="display: none;"></canvas>
-            <div id="camera-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:1002; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle at center, transparent 0%, transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px));">
+            <div id="camera-overlay" style="position:absolute; top:0; left:0; width:100%; height:100%; z-index:2; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle at center, transparent 0%, transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px));">
                 <div id="scan-target-area" style="width:min(var(--target-area-size), var(--target-area-max-size)); height:min(var(--target-area-size), var(--target-area-max-size)); position:relative; border:2px dashed rgba(255,255,255,0.7); border-radius:16px; box-shadow:0 0 15px rgba(0,0,0,0.3);">
                     <div class="corner top-left"></div><div class="corner top-right"></div>
                     <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
                 </div>
             </div>
-            <button id="btn-switch-entry-data-camera" class="app-sync-button bottom-center" style="z-index: 1003; position:fixed;">
+            <button id="btn-switch-entry-data-camera" class="app-sync-button bottom-center" style="z-index: 3; position:fixed;">
                 <span class="material-symbols-outlined">cameraswitch</span>
                 <span class="button-label">Switch Camera</span>
             </button>
         </div>`;
-    
-    let scannerWrapper = document.getElementById('entry-scanner-wrapper');
-    if (!scannerWrapper) {
-        scannerWrapper = document.createElement('div');
-        scannerWrapper.id = "entry-scanner-wrapper";
-        scannerWrapper.style.position = "absolute"; 
-        scannerWrapper.style.top = "0"; 
-        scannerWrapper.style.left = "0";
-        scannerWrapper.style.width = "100%";
-        scannerWrapper.style.height = "100%"; 
-        scannerWrapper.style.zIndex = "1060"; 
-        mainPane.appendChild(scannerWrapper);
+    scannerWrapper.innerHTML = scannerHTML;
+
+    const videoElementForScanner = scannerWrapper.querySelector('#entry-data-camera-feed');
+    const switchButton = scannerWrapper.querySelector('#btn-switch-entry-data-camera');
+
+    if (videoElementForScanner) {
+        console.log("displayEntryDataScannerUI: Video element #entry-data-camera-feed found within wrapper.");
+        if (switchButton) {
+            switchButton.addEventListener('click', switchEntryDataCamera);
+        } else {
+            console.warn("displayEntryDataScannerUI: Switch camera button not found in wrapper.");
+        }
+        startEntryDataCamera(null, videoElementForScanner); 
+    } else {
+        console.error("displayEntryDataScannerUI: CRITICAL - #entry-data-camera-feed not found in scannerWrapper after innerHTML set.");
+        alert("Error initializing scanner UI. Video element missing.");
+        if (isEntryDataScanningMode) clickQRScan(); 
     }
-    scannerWrapper.innerHTML = scannerHTML; 
-    
-    document.getElementById('btn-switch-entry-data-camera')?.addEventListener('click', switchEntryDataCamera);
-    console.log("displayEntryDataScannerUI: Attempting to start entry data camera...");
-    startEntryDataCamera();
 
     document.getElementById('btn-clear-form-fab')?.style.setProperty('display', 'none', 'important');
     document.getElementById('btn-add-created-entry-fab')?.style.setProperty('display', 'none', 'important');
@@ -221,18 +231,22 @@ function displayEntryDataScannerUI() {
 
 // --- Camera and QR Scanning Logic for Entry Data ---
 
-async function startEntryDataCamera(deviceId) {
+async function startEntryDataCamera(deviceId, videoElementInstance) {
     console.log("startEntryDataCamera: Function called. Device ID:", deviceId);
-    await stopEntryDataCamera(); 
-    const videoElement = document.getElementById('entry-data-camera-feed');
-    
+    // await stopEntryDataCamera(); // stopEntryDataCamera is called by clickQRScan, this might be redundant.
+                                 // However, ensuring a clean state is good. Let's keep it but be mindful.
+                                 // If clickQRScan already stops, this specific call might not be needed here.
+                                 // For now, let's assume clickQRScan handles the stop before this is invoked.
+
+    const videoElement = videoElementInstance; 
+
     if (!videoElement) { 
-        console.error("startEntryDataCamera: Video element #entry-data-camera-feed NOT FOUND."); 
-        alert("Error: Camera display element missing.");
-        clickQRScan(); // Try to revert to form view
+        console.error("startEntryDataCamera: Video element instance was not provided or is null."); 
+        alert("Error: Camera display element missing (passed as null).");
+        if (isEntryDataScanningMode) clickQRScan();
         return; 
     }
-    console.log("startEntryDataCamera: Video element #entry-data-camera-feed found:", videoElement);
+    console.log("startEntryDataCamera: Using provided video element instance:", videoElement);
 
     let constraints = { video: { facingMode: 'environment' }, audio: false };
     if (deviceId) constraints.video = { deviceId: { exact: deviceId } };
@@ -251,27 +265,21 @@ async function startEntryDataCamera(deviceId) {
         if (playPromise !== undefined) {
             playPromise.then(_ => {
                 console.log("startEntryDataCamera: Play promise resolved. Entry data camera started and playing.");
-                enumerateEntryDataCameras();
+                enumerateEntryDataCameras(); 
                 if (entryDataScanAnimationFrameId) cancelAnimationFrame(entryDataScanAnimationFrameId);
                 entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame);
                 console.log("startEntryDataCamera: Scan loop initiated.");
             }).catch(error => { 
                 console.error("startEntryDataCamera: Error playing entry data camera:", error);
                 alert("Error starting camera for field scan. Check console for details.");
-                // Optionally, try to revert to form view if play fails
-                // clickQRScan(); 
             });
         } else {
-            console.warn("startEntryDataCamera: videoElement.play() did not return a promise. Some browsers might autoplay.");
-            // For browsers that autoplay without returning a promise, we might need a 'playing' event listener
-            // to reliably start the scan loop. However, modern browsers should return a promise.
-            // As a fallback, if it autoplays, the scan loop might start from an earlier 'playing' event if one was attached.
-            // For this specific scanner, we are starting the loop after play promise resolves.
+            console.warn("startEntryDataCamera: videoElement.play() did not return a promise.");
         }
     } catch (err) {
         console.error("startEntryDataCamera: Error accessing entry data camera (getUserMedia):", err);
         alert("Could not access camera for field scan. Please check permissions and console for details.");
-        clickQRScan(); // Attempt to toggle back to form view if getUserMedia fails
+        if (isEntryDataScanningMode) clickQRScan(); 
     }
 }
 
@@ -287,7 +295,7 @@ async function stopEntryDataCamera() {
         entryDataCameraStream = null;
         console.log("stopEntryDataCamera: Media stream tracks stopped.");
     }
-    const videoElement = document.getElementById('entry-data-camera-feed');
+    const videoElement = document.getElementById('entry-data-camera-feed'); // This might be an issue if wrapper is removed first
     if (videoElement && videoElement.srcObject) {
         videoElement.srcObject = null;
         console.log("stopEntryDataCamera: Video srcObject set to null.");
@@ -303,10 +311,15 @@ async function enumerateEntryDataCameras() {
     try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         entryDataAvailableCameras = devices.filter(device => device.kind === 'videoinput');
-        console.log("enumerateEntryDataCameras: Found cameras:", entryDataAvailableCameras);
-        const switchButton = document.getElementById('btn-switch-entry-data-camera');
+        console.log("enumerateEntryDataCameras: Found cameras:", entryDataAvailableCameras.map(d => d.label));
+        
+        const scannerWrapper = document.getElementById('entry-scanner-wrapper');
+        const switchButton = scannerWrapper ? scannerWrapper.querySelector('#btn-switch-entry-data-camera') : null;
+
         if (switchButton) {
             switchButton.style.display = entryDataAvailableCameras.length > 1 ? 'flex' : 'none';
+        } else {
+            // console.warn("enumerateEntryDataCameras: Switch camera button not found in wrapper.");
         }
     } catch (err) { console.error("Error enumerating entry data cameras:", err); }
 }
@@ -315,15 +328,30 @@ async function switchEntryDataCamera() {
     if (entryDataAvailableCameras.length > 1) {
         entryDataCurrentCameraIndex = (entryDataCurrentCameraIndex + 1) % entryDataAvailableCameras.length;
         console.log("switchEntryDataCamera: Switching to camera index", entryDataCurrentCameraIndex);
-        await startEntryDataCamera(entryDataAvailableCameras[entryDataCurrentCameraIndex].deviceId);
+        // We need to pass the video element instance if startEntryDataCamera expects it
+        const scannerWrapper = document.getElementById('entry-scanner-wrapper');
+        const videoElement = scannerWrapper ? scannerWrapper.querySelector('#entry-data-camera-feed') : null;
+        if (videoElement) {
+            await startEntryDataCamera(entryDataAvailableCameras[entryDataCurrentCameraIndex].deviceId, videoElement);
+        } else {
+            console.error("switchEntryDataCamera: Could not find video element to restart camera.");
+        }
     }
 }
 
 function scanEntryDataFrame() {
-    if (!entryDataCameraStream) { /*console.log("scanEntryDataFrame: No stream, exiting.");*/ return; }
-    const videoElement = document.getElementById('entry-data-camera-feed');
-    const canvasElement = document.getElementById('entry-data-scan-canvas');
-    const targetAreaElement = document.querySelector('#entry-data-scanner-container #scan-target-area'); 
+    if (!entryDataCameraStream) return; 
+
+    const scannerWrapper = document.getElementById('entry-scanner-wrapper');
+    if (!scannerWrapper) {
+        if(entryDataScanAnimationFrameId) cancelAnimationFrame(entryDataScanAnimationFrameId);
+        entryDataScanAnimationFrameId = null;
+        return;
+    }
+
+    const videoElement = scannerWrapper.querySelector('#entry-data-camera-feed');
+    const canvasElement = scannerWrapper.querySelector('#entry-data-scan-canvas');
+    const targetAreaElement = scannerWrapper.querySelector('#scan-target-area'); 
 
     if (!videoElement || !canvasElement || !targetAreaElement || videoElement.readyState < videoElement.HAVE_ENOUGH_DATA || videoElement.videoWidth === 0) {
         entryDataScanAnimationFrameId = requestAnimationFrame(scanEntryDataFrame); return;
@@ -337,10 +365,11 @@ function scanEntryDataFrame() {
         const imageData = canvasContext.getImageData(0, 0, canvasElement.width, canvasElement.height);
         const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
         if (code && code.data) {
+            // Assuming checkIfCodeInTargetArea is globally available from js_AppSync.js
             if (typeof checkIfCodeInTargetArea === 'function' && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
                 console.log("Entry Data QR Scanned:", code.data);
                 alert("Scanned Data for Field: " + code.data + "\n(Auto-filling not yet implemented. This data will be lost when returning to form for now.)");
-                clickQRScan(); // Toggle back to form view
+                clickQRScan(); 
                 return; 
             }
         }
@@ -361,7 +390,6 @@ function clickQRScan() {
     if (isEntryDataScanningMode) { 
         stopEntryDataCamera(); 
         showAddEntryMenu(true); 
-        // FAB properties are reset by showAddEntryMenu
         isEntryDataScanningMode = false;
     } else { 
         saveCurrentEntryFieldData();
