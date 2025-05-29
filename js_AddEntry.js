@@ -169,10 +169,11 @@ function showAddEntryMenu(isRestoring = false) {
  */
 function displayEntryDataScannerUI() {
     console.log("displayEntryDataScannerUI called.");
+    
     const mainPane = document.getElementById('main-pane');
     if (!mainPane) {
         console.error("displayEntryDataScannerUI: Main pane not found!");
-        if (isEntryDataScanningMode) clickQRScan(); // Try to toggle back if something is wrong
+        if (isEntryDataScanningMode) clickQRScan(); 
         return;
     }
 
@@ -233,10 +234,7 @@ function displayEntryDataScannerUI() {
 
 async function startEntryDataCamera(deviceId, videoElementInstance) {
     console.log("startEntryDataCamera: Function called. Device ID:", deviceId);
-    // await stopEntryDataCamera(); // stopEntryDataCamera is called by clickQRScan, this might be redundant.
-                                 // However, ensuring a clean state is good. Let's keep it but be mindful.
-                                 // If clickQRScan already stops, this specific call might not be needed here.
-                                 // For now, let's assume clickQRScan handles the stop before this is invoked.
+    // await stopEntryDataCamera(); // Already called by clickQRScan or the function that transitions to this view
 
     const videoElement = videoElementInstance; 
 
@@ -295,7 +293,7 @@ async function stopEntryDataCamera() {
         entryDataCameraStream = null;
         console.log("stopEntryDataCamera: Media stream tracks stopped.");
     }
-    const videoElement = document.getElementById('entry-data-camera-feed'); // This might be an issue if wrapper is removed first
+    const videoElement = document.getElementById('entry-data-camera-feed'); // This ID is inside scannerWrapper
     if (videoElement && videoElement.srcObject) {
         videoElement.srcObject = null;
         console.log("stopEntryDataCamera: Video srcObject set to null.");
@@ -318,8 +316,6 @@ async function enumerateEntryDataCameras() {
 
         if (switchButton) {
             switchButton.style.display = entryDataAvailableCameras.length > 1 ? 'flex' : 'none';
-        } else {
-            // console.warn("enumerateEntryDataCameras: Switch camera button not found in wrapper.");
         }
     } catch (err) { console.error("Error enumerating entry data cameras:", err); }
 }
@@ -328,7 +324,6 @@ async function switchEntryDataCamera() {
     if (entryDataAvailableCameras.length > 1) {
         entryDataCurrentCameraIndex = (entryDataCurrentCameraIndex + 1) % entryDataAvailableCameras.length;
         console.log("switchEntryDataCamera: Switching to camera index", entryDataCurrentCameraIndex);
-        // We need to pass the video element instance if startEntryDataCamera expects it
         const scannerWrapper = document.getElementById('entry-scanner-wrapper');
         const videoElement = scannerWrapper ? scannerWrapper.querySelector('#entry-data-camera-feed') : null;
         if (videoElement) {
@@ -391,6 +386,8 @@ function clickQRScan() {
         stopEntryDataCamera(); 
         showAddEntryMenu(true); 
         isEntryDataScanningMode = false;
+        // FAB text/icon/aria-label are reset by showAddEntryMenu re-creating the button
+        // Ensure z-index is reset (done in showAddEntryMenu)
     } else { 
         saveCurrentEntryFieldData();
         displayEntryDataScannerUI(); 
@@ -426,6 +423,10 @@ function clearValidationMessages() {
     document.querySelectorAll('.entry-field-input.input-error').forEach(input => input.classList.remove('input-error'));
 }
 
+/**
+ * Handles the "Add Created Entry" FAB click.
+ * Validates required fields, creates an entry string (only with non-empty fieldValues), and stores it.
+ */
 function clickAddEntry() {
     console.log("clickAddEntry() called.");
     clearValidationMessages(); 
@@ -435,17 +436,21 @@ function clickAddEntry() {
     const stringPairArray = [];
 
     inputElements.forEach(inputEl => {
-        const fieldValue = inputEl.value.trim();
+        const fieldValue = inputEl.value.trim(); // Trim value here
         const fieldName = inputEl.dataset.originalFieldName; 
         const isRequired = inputEl.dataset.isRequired === 'true';
-        if (isRequired && fieldValue === "") {
+
+        if (isRequired && fieldValue === "") { // Check trimmed value for required fields
             allRequiredFilled = false;
             inputEl.classList.add('input-error'); 
             if (!firstMissingField) firstMissingField = inputEl;
         } else {
             inputEl.classList.remove('input-error'); 
         }
-        if (fieldName) stringPairArray.push(makeDataFieldStringPair(fieldName, fieldValue));
+        // Only add to stringPairArray if fieldName is valid AND trimmed fieldValue is not empty
+        if (fieldName && fieldValue !== "") { 
+             stringPairArray.push(makeDataFieldStringPair(fieldName, fieldValue));
+        }
     });
 
     if (!allRequiredFilled) {
@@ -458,7 +463,9 @@ function clickAddEntry() {
     }
     
     const entryString = makeEntryString(stringPairArray);
-    if (entryString) {
+    console.log("clickAddEntry: Constructed entryString (only non-empty values):", entryString);
+
+    if (entryString) { // Will be empty if all fields were empty
         try {
             window.addEntry(entryString); 
             showAddEntrySuccessScreen(); 
@@ -466,7 +473,9 @@ function clickAddEntry() {
             console.error("clickAddEntry: Error calling window.addEntry():", error.message);
             showValidationMessage(`Error saving entry: ${error.message}`, "error");
         }
-    } else { showValidationMessage("No data to save.", "error"); }
+    } else { 
+        showValidationMessage("No data to save. All fields were empty.", "error"); // Updated message
+    }
 }
 
 function showAddEntrySuccessScreen() {
