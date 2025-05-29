@@ -24,7 +24,6 @@
 
     --md-sys-color-outline: #B2DFDB;
     --md-sys-color-error: #B00020; /* Standard error color */
-    --md-sys-color-error-rgb: 176, 0, 32; /* RGB for error for box-shadow */
     --md-sys-color-error-container: #FDECEA;
     --md-sys-color-on-error-container: #B00020;
     --md-sys-color-success: #2E7D32; /* Success color */
@@ -69,39 +68,38 @@
     --md-font-title-weight: 700;
 }
 
-/* --- App Sync / Scanner Specific Styles (reused for entry data scanner) --- */
-.app-sync-container { /* General class for scanner views */
-    position: absolute; top: 0; left: 0; right: 0; bottom: 0; /* Covers parent */
+/* --- App Sync / Scanner Specific Styles --- */
+#app-sync-container { 
+    position: absolute; top: var(--top-app-bar-height); left: 0; right: 0; bottom: 0;
     background-color: #000; overflow: hidden; display: flex;
-    justify-content: center; align-items: center; z-index: 1000; /* High z-index */
+    justify-content: center; align-items: center; z-index: 100; 
 }
-.app-sync-container video { /* Target video within any scanner */
+#camera-feed {
     position: absolute; top: 50%; left: 50%; width: 100%; height: 100%;
-    object-fit: cover; transform: translate(-50%, -50%); z-index: 1001;
+    object-fit: cover; transform: translate(-50%, -50%); z-index: 101;
 }
-.app-sync-container #camera-overlay { /* Target overlay within any scanner */
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1002;
+#camera-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 102;
     display: flex; justify-content: center; align-items: center;
     background: radial-gradient( circle at center, transparent 0%,
         transparent calc(min(var(--target-area-size), var(--target-area-max-size)) / 2), 
         var(--overlay-color) calc(min(var(--target-area-size), var(--target-area-max-size)) / 2 + 1px) );
 }
-.app-sync-container #scan-target-area { /* Target scan area within any scanner */
+#scan-target-area {
     width: min(var(--target-area-size), var(--target-area-max-size)); 
     height: min(var(--target-area-size), var(--target-area-max-size));
     position: relative; border: 2px dashed rgba(255, 255, 255, 0.7);
     border-radius: 16px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
 }
-.app-sync-container .corner { /* Target corners within any scanner */
+.corner {
     position: absolute; width: 20px; height: 20px; 
     border-color: rgba(255, 255, 255, 0.9); border-style: solid; border-width: 0;
 }
-.app-sync-container .corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;}
-.app-sync-container .corner.top-right { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px;}
-.app-sync-container .corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
-.app-sync-container .corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
+.corner.top-left { top: -2px; left: -2px; border-top-width: 3px; border-left-width: 3px; border-top-left-radius: 14px;}
+.corner.top-right { top: -2px; right: -2px; border-top-width: 3px; border-right-width: 3px; border-top-right-radius: 14px;}
+.corner.bottom-left { bottom: -2px; left: -2px; border-bottom-width: 3px; border-left-width: 3px; border-bottom-left-radius: 14px;}
+.corner.bottom-right { bottom: -2px; right: -2px; border-bottom-width: 3px; border-right-width: 3px; border-bottom-right-radius: 14px;}
 
-/* Button styling for buttons *inside* scanner views (like switch camera or mode toggle) */
 .app-sync-button { 
     background-color: rgba(var(--md-sys-color-primary-rgb), 0.8);
     color: var(--md-sys-color-on-primary); border: none; border-radius: 28px;
@@ -113,22 +111,12 @@
 .app-sync-button:hover { background-color: var(--md-sys-color-primary); transform: scale(1.05); }
 .app-sync-button .material-symbols-outlined { font-size: 22px; }
 
-/* Positioning for buttons in AppSync (setup) scanner view */
 #app-sync-container .app-sync-button.top-left { position: absolute; top: 20px; left: 20px; z-index: 103;}
 #app-sync-container .app-sync-button.bottom-center {
     position: absolute; z-index: 103;
     bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
     left: 50%; transform: translateX(-50%);
 }
-/* Positioning for switch camera button in Entry Data scanner view */
-#entry-data-scanner-container .app-sync-button.bottom-center {
-    position: fixed; /* Fixed relative to viewport */
-    bottom: calc(var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px);
-    left: 50%; transform: translateX(-50%);
-    z-index: 1003; /* Ensure it's above the overlay */
-}
-
-
 .camera-error {
     color: var(--md-sys-color-on-surface); padding: 30px; text-align: center;
     background-color: var(--md-sys-color-surface); border-radius: 8px; margin: 20px;
@@ -181,7 +169,7 @@ body, html {
 .add-entry-view-container {
     position: relative; 
     width: 100%;
-    min-height: calc(100% - (var(--fab-margin) + var(--fab-size) + 16px) - (var(--fab-size) + var(--fab-margin) + 10px) ); /* Attempt to make space if content is short */
+    min-height: calc(100vh - var(--top-app-bar-height) - (var(--nav-bar-height) + var(--nav-bar-bottom-margin) + 20px) ); 
     display: flex;
     flex-direction: column;
 }
@@ -324,12 +312,12 @@ body, html {
 /* Input Error Styling */
 .entry-field-input.input-error {
     border-color: var(--md-sys-color-error) !important;
-    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-error-rgb, 176, 0, 32), 0.2) !important; 
+    box-shadow: 0 0 0 2px rgba(var(--md-sys-color-error-rgb, 176, 0, 32), 0.2) !important; /* Fallback if --md-sys-color-error-rgb not set */
 }
 /* Validation Message Styling */
 .validation-message {
     padding: 10px 15px;
-    margin-bottom: 15px; 
+    margin-bottom: 15px; /* Space below the message */
     border-radius: 6px;
     font-size: 0.95em;
     text-align: center;
@@ -421,14 +409,6 @@ body, html {
 .quest-button.primary:hover {
     background-color: var(--md-sys-color-secondary); /* Darken on hover */
 }
-.quest-button.secondary { /* For buttons like "Go to Review" */
-    background-color: var(--md-sys-color-surface-container);
-    color: var(--md-sys-color-on-surface-variant);
-    border: 1px solid var(--md-sys-color-outline);
-}
-.quest-button.secondary:hover {
-    background-color: var(--md-sys-color-outline);
-}
 
 
 /* Accessibility: Focus states for keyboard navigation */
@@ -448,147 +428,4 @@ body, html {
 
 button:focus {
     outline: none;
-}
-
-/* --- Review Mode Specific Styles --- */
-.review-mode-container {
-    display: flex;
-    align-items: center; /* Vertically center arrows and card */
-    justify-content: space-between; /* Push arrows to sides */
-    height: 100%; /* Take full height of main-pane's content area */
-    position: relative; /* For positioning bottom controls */
-    padding: 0 10px; /* Some padding around the whole review area */
-    box-sizing: border-box;
-}
-
-.review-nav-arrow {
-    background-color: rgba(var(--md-sys-color-primary-rgb), 0.1);
-    color: var(--md-sys-color-primary);
-    border: none;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    flex-shrink: 0; /* Prevent arrows from shrinking */
-}
-.review-nav-arrow:hover {
-    background-color: rgba(var(--md-sys-color-primary-rgb), 0.2);
-}
-.review-nav-arrow:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-.review-nav-arrow .material-symbols-outlined {
-    font-size: 28px;
-}
-
-#review-entry-card-container {
-    flex-grow: 1; /* Card takes up available space between arrows */
-    overflow: hidden; /* Essential for swipe animation */
-    position: relative;
-    height: auto; /* Adjust based on content, or set a fixed height if desired */
-    max-width: 600px; /* Max width for the card content */
-    margin: 0 10px; /* Space between arrows and card */
-    background-color: var(--md-sys-color-surface);
-    border-radius: 12px;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-    padding: 20px;
-    box-sizing: border-box;
-}
-
-#review-entry-display-area {
-    width: 100%;
-    /* Animation properties */
-    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
-}
-/* Swipe animations */
-.swipe-left-animation-out {
-    transform: translateX(-100%);
-    opacity: 0;
-}
-.swipe-left-animation-in {
-    transform: translateX(0);
-    opacity: 1;
-}
-.swipe-right-animation-out {
-    transform: translateX(100%);
-    opacity: 0;
-}
-.swipe-right-animation-in {
-    transform: translateX(0);
-    opacity: 1;
-}
-
-
-.review-entry-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-.review-entry-table td {
-    padding: 8px 4px;
-    border-bottom: 1px solid var(--md-sys-color-outline);
-    vertical-align: top;
-}
-.review-entry-table tr:last-child td {
-    border-bottom: none;
-}
-.review-field-name {
-    font-weight: 500;
-    color: var(--md-sys-color-primary);
-    padding-right: 10px;
-    width: 35%; /* Adjust as needed */
-    white-space: nowrap;
-}
-.review-field-value {
-    word-wrap: break-word; /* Allow long values to wrap */
-    color: var(--md-sys-color-on-surface);
-}
-
-.review-bottom-controls {
-    position: absolute;
-    bottom: var(--fab-margin); /* Align with other FABs' bottom margin */
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    background-color: rgba(var(--md-sys-color-surface-rgb), 0.85); /* Slightly transparent background */
-    backdrop-filter: blur(5px); /* Optional: blur effect for modern look */
-    padding: 8px 16px;
-    border-radius: 24px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-}
-#review-progress-indicator {
-    font-size: 0.9em;
-    color: var(--md-sys-color-on-surface-variant);
-}
-.review-edit-button { /* FAB styling is already applied by .fab-entry-mode */
-    position: static; /* Override fixed positioning from .fab-entry-mode */
-    transform: none; /* Override transform from .fab-entry-mode */
-    /* Adjust size if needed, or keep FAB size */
-}
-.review-no-entries-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-}
-.review-no-entries-container .material-symbols-outlined {
-    font-size: 56px;
-    color: var(--md-sys-color-secondary);
-    margin-bottom: 16px;
-}
-.review-no-entries-container h2 {
-    color: var(--md-sys-color-secondary);
-    margin-bottom: 8px;
-}
-.review-no-entries-container p {
-    margin-bottom: 24px;
 }
