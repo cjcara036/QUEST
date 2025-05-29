@@ -192,7 +192,7 @@ function displayEntryDataScannerUI() {
     scannerWrapper.style.zIndex = "1060"; 
     mainPane.appendChild(scannerWrapper);
 
-    const tempVideoBg = ""; // "background-color: limegreen;"; // Keep for debugging if needed
+    const tempVideoBg = ""; // "background-color: limegreen;"; 
     const scannerHTML = `
         <div id="entry-data-scanner-container" class="app-sync-container" style="position:absolute; top:0; left:0; right:0; bottom:0; background-color: #000;"> 
             <video id="entry-data-camera-feed" playsinline autoplay muted style="position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; transform:translate(-50%,-50%); z-index:1; ${tempVideoBg}"></video>
@@ -320,14 +320,16 @@ function scanEntryDataFrame() {
             if (typeof checkIfCodeInTargetArea === 'function' && checkIfCodeInTargetArea(code.location, videoElement, targetAreaElement)) {
                 console.log("Entry Data QR Scanned:", code.data);
                 let qrScannedDataArray = null;
+                let updatedFieldsList = []; 
+
                 try {
                     if (typeof parseQRDataEntry === 'function') {
-                        qrScannedDataArray = parseQRDataEntry(code.data); // This can throw an error
+                        qrScannedDataArray = parseQRDataEntry(code.data); 
                     } else {
                         throw new Error("parseQRDataEntry function not available.");
                     }
 
-                    if (qrScannedDataArray) { // parseQRDataEntry now throws on failure or returns array
+                    if (qrScannedDataArray) { 
                         console.log("Parsed QR data for fields:", qrScannedDataArray);
                         const qrDataMap = qrScannedDataArray.reduce((map, item) => {
                             map[item.fieldName.toLowerCase()] = item.fieldValue;
@@ -335,14 +337,24 @@ function scanEntryDataFrame() {
                         }, {});
                         tempEntryFieldValues.forEach(tempField => {
                             if (tempField.value.trim() === "" && qrDataMap.hasOwnProperty(tempField.originalFieldNameLC)) {
-                                tempField.value = qrDataMap[tempField.originalFieldNameLC];
+                                const newValue = qrDataMap[tempField.originalFieldNameLC];
+                                if (tempField.value !== newValue) { 
+                                    tempField.value = newValue;
+                                    // For the alert, get the original casing of the field name if possible
+                                    const originalCasingFieldName = document.getElementById(tempField.id)?.dataset.originalFieldName || tempField.originalFieldNameLC;
+                                    updatedFieldsList.push(originalCasingFieldName); 
+                                }
                             }
                         });
+                        if (updatedFieldsList.length > 0) {
+                            alert("Updated fields: " + updatedFieldsList.join(", "));
+                        } else {
+                            alert("No empty fields were updated by the QR scan.");
+                        }
                     } 
-                    // No specific 'else' needed here as parseQRDataEntry will throw if no valid pairs.
                 } catch (parseError) {
                     console.error("Error parsing scanned QR data:", parseError.message);
-                    alert("Invalid QR Code Scanned: " + parseError.message + "\nPlease ensure the QR code contains fieldName:fieldValue pairs separated by semicolons.");
+                    alert("Invalid QR Code Scanned: " + parseError.message + "\nExpected format: fieldName1:fieldValue1;fieldName2:fieldValue2;...");
                 }
                 clickQRScan(); 
                 return; 
