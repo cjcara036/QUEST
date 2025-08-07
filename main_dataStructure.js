@@ -6,7 +6,7 @@
 
 /**
  * @type {Array<{fieldName: string, fieldValue: string, fieldRequired: boolean}>}
- * Stores the definitions of data fields to be used in forms.
+ * Stores the definitions of data fields. Now loaded from a cookie.
  */
 let dataFields = [];
 
@@ -14,60 +14,65 @@ let dataFields = [];
  * Separator character used between individual fieldName:fieldValue pairs within a single entry string.
  * @type {string}
  */
-const SEP_ENTRY_FIELD = "|"; 
+const SEP_ENTRY_FIELD = "|";
 
 /**
- * Parses a string containing field definitions (triplets for form setup).
+ * Parses a string containing field definitions and saves them to a cookie.
  * Format: fieldName:fieldValue:fieldRequired (T/F)
  * @param {string} content - The string to parse.
- * @returns {boolean} True if parsing was successful and at least one valid field was added.
+ * @returns {boolean} True if parsing was successful.
  */
 function parseDataField(content) {
     console.log("parseDataField (triplet): Received content:", content);
     if (typeof content !== 'string' || content.trim() === "") {
-        dataFields = []; 
+        dataFields = [];
         console.error("parseDataField (triplet): Content is not a string or is empty.");
         return false;
     }
 
-    dataFields = []; 
+    const parsedFields = [];
     const segments = content.split(';');
     let overallSuccess = true;
-    let fieldsAdded = 0;
 
     segments.forEach((segment, segmentIndex) => {
-        if (segment.trim() === "") return; 
+        if (segment.trim() === "") return;
 
         const parts = segment.split(':');
         if (parts.length !== 3) {
-            console.error(`parseDataField (triplet): Segment "${segment}" at index ${segmentIndex} has ${parts.length} parts, expected 3.`);
-            overallSuccess = false; return; 
+            console.error(`parseDataField (triplet): Segment "${segment}" at index ${segmentIndex} has invalid parts.`);
+            overallSuccess = false; return;
         }
 
         const fieldName = parts[0].trim();
-        const fieldValue = parts[1].trim(); 
+        const fieldValue = parts[1].trim();
         const fieldRequiredStr = parts[2].trim().toUpperCase();
 
-        if (fieldName === "") {
-            console.error(`parseDataField (triplet): fieldName empty in segment "${segment}" at index ${segmentIndex}.`);
-            overallSuccess = false; return; 
+        if (fieldName === "" || (fieldRequiredStr !== "T" && fieldRequiredStr !== "F")) {
+            console.error(`parseDataField (triplet): Invalid data in segment "${segment}".`);
+            overallSuccess = false; return;
         }
-        if (fieldRequiredStr !== "T" && fieldRequiredStr !== "F") {
-            console.error(`parseDataField (triplet): fieldRequired invalid in segment "${segment}" at index ${segmentIndex}. Found "${parts[2].trim()}".`);
-            overallSuccess = false; return; 
-        }
-        dataFields.push({
+        parsedFields.push({
             fieldName: fieldName,
             fieldValue: fieldValue,
             fieldRequired: (fieldRequiredStr === "T")
         });
-        fieldsAdded++;
     });
 
-    if (!overallSuccess) console.error("parseDataField (triplet): Parsing completed with errors.");
-    else console.log(`parseDataField (triplet): Parsing successful. ${fieldsAdded} fields populated.`);
+    if (overallSuccess && parsedFields.length > 0) {
+        dataFields = parsedFields;
+        if (typeof window.storeDataFields === 'function') {
+            window.storeDataFields(dataFields); // Save to cookie
+            console.log(`parseDataField (triplet): Parsing successful. ${dataFields.length} fields populated and stored.`);
+        } else {
+             console.error("parseDataField (triplet): storeDataFields function not found.");
+             overallSuccess = false;
+        }
+    } else {
+        if (parsedFields.length === 0) overallSuccess = false;
+        console.error("parseDataField (triplet): Parsing failed or produced no fields.");
+    }
     
-    return overallSuccess && fieldsAdded > 0;
+    return overallSuccess;
 }
 
 /**
@@ -119,10 +124,21 @@ function parseQRDataEntry(qrCodeString) {
 
 
 /**
- * Returns a copy of the dataFields array (form setup).
+ * Returns a copy of the dataFields array, loading from cookie if necessary.
  */
 function getDataFields() {
-    return dataFields.map(field => ({ ...field }));
+    // Check if dataFields is already populated in memory
+    if (dataFields && dataFields.length > 0) {
+        return dataFields.map(field => ({ ...field }));
+    }
+    // If not, try loading from cookie storage
+    const storedFields = typeof getStoredDataFields === 'function' ? getStoredDataFields() : null;
+    if (storedFields) {
+        dataFields = storedFields;
+        return dataFields.map(field => ({ ...field }));
+    }
+    // If nothing is found, return empty
+    return [];
 }
 
 /**
@@ -131,7 +147,7 @@ function getDataFields() {
 function makeDataFieldStringPair(fieldName, fieldValue) {
     if (typeof fieldName !== 'string' || typeof fieldValue !== 'string') {
         console.error("makeDataFieldStringPair: fieldName and fieldValue must be strings.");
-        return ""; 
+        return "";
     }
     return `${fieldName}:${fieldValue}`;
 }
@@ -149,12 +165,6 @@ function makeEntryString(stringPairArray) {
 
 /**
  * Retrieves all stored entries from the cookie and parses them into a structured array of objects.
- * Each entry in the main array is an array of field objects {fieldName, fieldValue}.
- * Assumes SEP_CHAR is globally available from main_EntryStorage.js (e.g., '~')
- * Assumes getAllEntryData is globally available from main_EntryStorage.js
- * Uses SEP_ENTRY_FIELD from this file (e.g., '|')
- * @returns {Array<Array<{fieldName: string, fieldValue: string}>>} An array of entries, 
- * where each entry is an array of its field-value pairs. Returns empty array if no data or error.
  */
 function getAllEntriesAsObjects() {
     if (typeof getAllEntryData !== 'function') {
@@ -162,43 +172,30 @@ function getAllEntriesAsObjects() {
         return [];
     }
     
-    const allEntriesString = getAllEntryData(); 
+    const allEntriesString = getAllEntryData();
     if (!allEntriesString) {
-        return []; 
+        return [];
     }
 
-    // SEP_CHAR is defined in main_EntryStorage.js as: const SEP_CHAR = "~";
-    // It should be globally accessible if main_EntryStorage.js is loaded before this file.
-    // If not, this will cause an error. A safer approach is to pass it or define it here.
-    // For now, assuming it's globally accessible.
-    const entrySeparator = typeof SEP_CHAR === 'string' ? SEP_CHAR : "~"; // Fallback just in case
-
-
+    const entrySeparator = typeof SEP_CHAR === 'string' ? SEP_CHAR : "~";
     const individualEntryStrings = allEntriesString.split(entrySeparator);
     const allParsedEntries = [];
 
     individualEntryStrings.forEach(entryStr => {
-        if (entryStr.trim() === "") return; 
+        if (entryStr.trim() === "") return;
 
-        const fieldPairs = entryStr.split(SEP_ENTRY_FIELD); // SEP_ENTRY_FIELD from this file
+        const fieldPairs = entryStr.split(SEP_ENTRY_FIELD);
         const currentEntryFields = [];
         
         fieldPairs.forEach(pairStr => {
             if (pairStr.trim() === "") return;
-
             const colonIndex = pairStr.indexOf(':');
-            if (colonIndex === -1) {
-                console.warn(`getAllEntriesAsObjects: Malformed pair (missing colon) in entry: "${pairStr}". Skipping pair.`);
-                return; 
-            }
+            if (colonIndex === -1) return;
 
             const fieldName = pairStr.substring(0, colonIndex).trim();
-            const fieldValue = pairStr.substring(colonIndex + 1).trim(); 
+            const fieldValue = pairStr.substring(colonIndex + 1).trim();
 
-            if (fieldName === "") {
-                console.warn(`getAllEntriesAsObjects: Empty fieldName in pair: "${pairStr}". Skipping pair.`);
-                return; 
-            }
+            if (fieldName === "") return;
             currentEntryFields.push({ fieldName: fieldName, fieldValue: fieldValue });
         });
 
@@ -206,7 +203,6 @@ function getAllEntriesAsObjects() {
             allParsedEntries.push(currentEntryFields);
         }
     });
-
-    console.log("getAllEntriesAsObjects: Parsed all entries:", allParsedEntries);
+    
     return allParsedEntries;
 }
